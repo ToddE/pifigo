@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"fmt"    // For fmt.Errorf
 
-    "pifigo/internal/config" // Adjust import path to pifigo's own internal config
+    "github.com/ToddE/pifigo/internal/config" 
 )
 
 // TemplateData combines all data needed for the HTML template.
