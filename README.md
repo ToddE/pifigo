@@ -11,8 +11,7 @@
   - [3. Requirements](#3-requirements)
   - [4. Installation](#4-installation)
     - [Step 1: Prepare Your Device OS](#step-1-prepare-your-device-os)
-    - [Step 2: Obtain pifigo Binaries \& Installer](#step-2-obtain-pifigo-binaries--installer)
-    - [OLD Step 2: Obtain pifigo Binaries \& Installer](#old-step-2-obtain-pifigo-binaries--installer)
+    - [Step 2: Obtain pifigo Binaries \& Installer (this section being revised/updated)](#step-2-obtain-pifigo-binaries--installer-this-section-being-revisedupdated)
     - [Step 3: Run the Installer Script](#step-3-run-the-installer-script)
   - [5. Initial Setup Flow (User Guide)](#5-initial-setup-flow-user-guide)
   - [6. Configuration](#6-configuration)
@@ -75,7 +74,7 @@ This guide assumes you have a freshly flashed minimal Linux OS on your device an
 3.  **Boot Device:** Insert the SD card into your device and power it on.
 4.  **Initial Access:** Connect to your device via SSH (e.g., using USB Gadget Mode for Pi Zeros: `ssh pi@raspberrypi.local` or `ssh pi@192.168.7.2`). If you configured Wi-Fi, you can SSH to the IP your router assigns (`ssh [username]@[hostname/ip].local` or find its IP on your router).
 
-### Step 2: Obtain pifigo Binaries & Installer
+### Step 2: Obtain pifigo Binaries & Installer (this section being revised/updated)
 
 On your **development machine**:
 
