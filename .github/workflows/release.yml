@@ -1,4 +1,4 @@
-name: Release pifigo
+name: Build pifigo
 
 on:
   push:
@@ -85,7 +85,7 @@ jobs:
           APP_NAME="pifigo"
           VERSION_CLEAN="${{ env.RELEASE_VERSION }}" # Get version from previous step
           ARCHIVE_SUFFIX="${{ matrix.archive_suffix }}"
-          OUTPUT_DIR="releases" # Matches your build-pifigo.sh output directory
+          OUTPUT_DIR="releases"
 
           BINARY_FILENAME="${APP_NAME}_${VERSION_CLEAN}${ARCHIVE_SUFFIX}"
           ARCHIVE_NAME="${APP_NAME}-${VERSION_CLEAN}${ARCHIVE_SUFFIX}.tar.gz"
