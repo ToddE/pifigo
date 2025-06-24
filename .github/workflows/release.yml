@@ -1,6 +1,7 @@
 name: Build pifigo
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+' # Trigger on tags like v1.0.0, v0.1.2
