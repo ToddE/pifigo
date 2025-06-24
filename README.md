@@ -1,31 +1,30 @@
-# pifigo - Headless Wi-Fi Setup for Embedded Linux Devices
+## pifigo - Headless Wi-Fi Setup for Embedded Linux Devices
 
 ![pifigo Logo Placeholder](cmd/pifigo/assets/logo.png) **pifigo** is a lightweight, Go-powered application designed to simplify the initial Wi-Fi configuration of headless Linux-based embedded devices (like Raspberry Pi, Orange Pi, or other single-board computers) via a web browser. It sets up a temporary Access Point (AP) and a captive portal, allowing users to connect their device to their home Wi-Fi network easily, without needing a monitor, keyboard, or mouse.
 
 ## Table of Contents
-
 - [pifigo - Headless Wi-Fi Setup for Embedded Linux Devices](#pifigo---headless-wi-fi-setup-for-embedded-linux-devices)
-  - [Table of Contents](#table-of-contents)
-  - [1. Features](#1-features)
-  - [2. Why pifigo?](#2-why-pifigo)
-  - [3. Requirements](#3-requirements)
-  - [4. Installation](#4-installation)
-    - [Step 1: Prepare Your Device OS](#step-1-prepare-your-device-os)
-    - [Step 2: Obtain pifigo Binaries \& Installer (this section being revised/updated)](#step-2-obtain-pifigo-binaries--installer-this-section-being-revisedupdated)
-    - [Step 3: Run the Installer Script](#step-3-run-the-installer-script)
-  - [5. Initial Setup Flow (User Guide)](#5-initial-setup-flow-user-guide)
-  - [6. Configuration](#6-configuration)
-    - [Main Config (`config.toml`)](#main-config-configtoml)
-    - [Localization (`lang/`)](#localization-lang)
-    - [Custom Assets (`assets/`)](#custom-assets-assets)
-  - [7. Management](#7-management)
-    - [pifigo Service Control](#pifigo-service-control)
-    - [Forcing AP Mode / Resetting Wi-Fi](#forcing-ap-mode--resetting-wi-fi)
-    - [Updating pifigo](#updating-pifigo)
-    - [Uninstalling pifigo](#uninstalling-pifigo)
-  - [8. Troubleshooting](#8-troubleshooting)
-  - [9. Contributing](#9-contributing)
-  - [10. License](#10-license)
+- [Table of Contents](#table-of-contents)
+- [1. Features](#1-features)
+- [2. Why pifigo?](#2-why-pifigo)
+- [3. Requirements](#3-requirements)
+- [4. Installation](#4-installation)
+  - [Step 1: Prepare Your Device OS](#step-1-prepare-your-device-os)
+  - [Step 2: Obtain pifigo Binaries \& Installer (this section being revised/updated)](#step-2-obtain-pifigo-binaries--installer-this-section-being-revisedupdated)
+  - [Step 3: Run the Installer Script](#step-3-run-the-installer-script)
+- [5. Initial Setup Flow (User Guide)](#5-initial-setup-flow-user-guide)
+- [6. Configuration](#6-configuration)
+  - [Main Config (`config.toml`)](#main-config-configtoml)
+  - [Localization (`lang/`)](#localization-lang)
+  - [Custom Assets (`assets/`)](#custom-assets-assets)
+- [7. Management](#7-management)
+  - [pifigo Service Control](#pifigo-service-control)
+  - [Forcing AP Mode / Resetting Wi-Fi](#forcing-ap-mode--resetting-wi-fi)
+  - [Updating pifigo](#updating-pifigo)
+  - [Uninstalling pifigo](#uninstalling-pifigo)
+- [8. Troubleshooting](#8-troubleshooting)
+- [9. Contributing](#9-contributing)
+- [10. License](#10-license)
 
 ---
 
@@ -50,25 +49,28 @@
 
 * **Hardware:** A Linux-based embedded device with a Wi-Fi adapter (e.g., Raspberry Pi Zero W, Raspberry Pi Zero 2 W, Raspberry Pi 3/4, Orange Pi Zero 3, etc.).
 * **Operating System:** A minimal Linux distribution (e.g., Raspberry Pi OS Lite, Armbian Minimal).
-    * **Crucial:** OS must have `systemd` as its init system.
-    * **Essential:** Wi-Fi adapter drivers must be installed and functional.
-    * **Required Packages (will be installed by `install.sh`):** `hostapd`, `dnsmasq`, `iptables-persistent`, `avahi-daemon`, `iproute2`, `network-manager`.
+    * **:warning:** OS must have `systemd` as its init system.
+    * **:warning:** Wi-Fi adapter drivers must be installed and functional.
+
 * **Go Version:** `go 1.24` or newer (for building from source, not needed on device if using pre-compiled binaries).
 * **Development Machine:** A Linux (or macOS/Windows) machine for cross-compiling the binaries if building from source.
+
+* **ALL Required Packages (will be installed by `install.sh`):** `hostapd`, `dnsmasq`, `iptables-persistent`, `avahi-daemon`, `iproute2`, `network-manager`.
 
 ## 4. Installation
 
 This guide assumes you have a freshly flashed minimal Linux OS on your device and can connect to it via SSH (e.g., via USB gadget mode or temporary Ethernet).
 
 ### Step 1: Prepare Your Device OS
+*While this information is placed here for convenience, you should follow the directions associated with your Pi or other device.*
 
-1.  **Flash OS:** Use your preferred imager (e.g., Raspberry Pi Imager) to flash **Raspberry Pi OS Lite** (32-bit or 64-bit, depending on your device's capabilities) or a similar minimal Linux distribution to your microSD card.
-2.  **Crucial Setup during Imager Process (Click the gear icon ⚙️):**
+1.  **Flash OS:** Use your preferred imager (e.g., Raspberry Pi Imager) to flash **Raspberry Pi OS Lite** (32-bit or 64-bit, depending on your device's capabilities), **Armbian Minimal** or a similar minimal Linux distribution to your microSD card.
+2.  **:warning: During Imaging Process be sure to set and note the following**
     * **Set hostname:** e.g., `my-device` (this will be `my-device.local` via mDNS).
     * **Enable SSH:** Check "Enable SSH" and select "Use password authentication".
     * **Set username and password:** e.g., `pi` and `raspberry` (or your preferred secure credentials).
     * **Configure wireless LAN:**
-        * **If your device has Ethernet (e.g., Pi 3/4):** Leave this blank. You'll use Ethernet for initial SSH access.
+        * **If your device has Ethernet (e.g., Pi 3/4):** Leave this blank and *use Ethernet for initial SSH access* if you can. 
         * **If your device is Wi-Fi-only (e.g., Pi Zero W/2W, some Orange Pis):** **You MUST configure your home Wi-Fi here** to gain initial SSH access. `pifigo` will then detect your network manager and reconfigure Wi-Fi for its setup AP after installation.
     * **Set locale settings:** Choose your correct **Wi-Fi country** (e.g., `US`, `GB`, `DE`). This is absolutely essential for Wi-Fi to function correctly and legally.
 3.  **Boot Device:** Insert the SD card into your device and power it on.
@@ -76,7 +78,7 @@ This guide assumes you have a freshly flashed minimal Linux OS on your device an
 
 ### Step 2: Obtain pifigo Binaries & Installer (this section being revised/updated)
 
-On your **development machine**:
+On your **development machine** (should you choose to build on your own):
 
 1.  **Clone the pifigo repository:**
     ```bash
@@ -93,7 +95,7 @@ On your **development machine**:
     ```
     This will generate binaries like `pifigo_1.0.0_linux_armv6`, `pifigo_1.0.0_linux_armv7`, `pifigo_1.0.0_linux_arm64` in your `pifigo/releases/` directory.
 
-3.  **Choose the correct binary:** Select the binary matching your device's OS bitness and ARM version from the `releases/` directory.
+3.  **Choose the correct binary:** Select the binary matching your device's OS type and ARM version from the `releases/` directory.
 
 4.  **Transfer files to your device:**
 
