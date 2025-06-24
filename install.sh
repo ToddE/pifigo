@@ -21,6 +21,7 @@ VERSION="0.0.1"
 # --- Configuration Variables ---
 APP_NAME="pifigo"
 PROJECT_ROOT=$(pwd) 
+RELEASE_DIR=$(pwd)/releases
 
 APP_CONFIG_DIR="/etc/$APP_NAME"             # /etc/pifigo (for config.toml, lang/*)
 APP_ASSETS_DEST_DIR="$APP_CONFIG_DIR/assets" # /etc/pifigo/assets (for optional external assets)
@@ -52,8 +53,8 @@ esac
 SOURCE_BINARY_NAME="${APP_NAME}_${VERSION}${ARCH_SUFFIX}" # e.g., pifigo_0.0.1_linux_armv7
 
 # Verify the compiled binary exists
-if [ ! -f "$PROJECT_ROOT/$SOURCE_BINARY_NAME" ]; then
-    echo -e "${RED}Error: Required binary '$SOURCE_BINARY_NAME' not found in '$PROJECT_ROOT'.${NC}" >&2
+if [ ! -f "$RELEASE_DIR/$SOURCE_BINARY_NAME" ]; then
+    echo -e "${RED}Error: Required binary '$SOURCE_BINARY_NAME' not found in '$RELEASE_DIR'.${NC}" >&2
     echo -e "${RED}Please ensure you have run './build-pifigo.sh' in the $APP_NAME project root to compile binaries for this target.${NC}" >&2
     exit 1
 fi
@@ -202,7 +203,7 @@ fi
 
 # --- 5. Copy Compiled Go Binary ---
 echo -e "${CYAN}Copying compiled Go binary '$SOURCE_BINARY_NAME' to '$APP_BINARY_DEST'...${NC}"
-cp "$PROJECT_ROOT/$SOURCE_BINARY_NAME" "$APP_BINARY_DEST" 
+cp "$RELEASE_DIR/$SOURCE_BINARY_NAME" "$APP_BINARY_DEST" 
 chmod +x "$APP_BINARY_DEST"
 
 # --- 6. Copy App-Specific Configuration Files and Assets ---
