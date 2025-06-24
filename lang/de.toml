@@ -1,0 +1,25 @@
+# de.toml - German language strings for pifigo
+
+page_title = "pifigo Einrichtung"
+heading_text = "Verbinde dein Gerät mit WLAN"
+
+connect_button_text = "Verbinden"
+refresh_button_text = "Netzwerke aktualisieren"
+available_networks_label = "Verfügbare Netzwerke:"
+manual_ssid_label = "Oder SSID manuell eingeben (falls nicht gelistet):"
+password_label = "Passwort:"
+manual_ssid_placeholder = "Netzwerknamen eingeben"
+password_placeholder = "Passwort eingeben"
+no_networks_message = "Keine Netzwerke gefunden. Versuche zu aktualisieren oder gib es manuell ein."
+initial_message = "Bitte verbinde dein Gerät mit deinem WLAN-Netzwerk."
+connecting_message = "Verbindungsversuch läuft... Gerät wird neu starten."
+success_message_template = "Erfolg! Dein Gerät verbindet sich mit '%s'. Es wird in Kürze neu starten. Bitte verbinde dein Gerät erneut mit deinem Haupt-WLAN-Netzwerk und navigiere dann zu %s, um die Einrichtung fortzusetzen."
+error_message_prefix = "Fehler: "
+
+# Device Information
+device_id_label = "Deine Geräte-ID:"
+claim_code_label = "Anforderungscode:"
+post_connect_instructions = "Sobald dein Gerät online ist, kannst du seine Geräte-ID und den Anforderungscode für die weitere Einrichtung verwenden."
+local_node_setup_link_text = "Klicke hier, um die lokale Seite deines Geräts aufzurufen."
+copied_to_clipboard_message = " '%s' in die Zwischenablage kopiert!"
+# Mnemonic/wallet related strings removed

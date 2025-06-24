@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Lang.PageTitle}}</title>
+    <style>
+        /* Shared Base Styles - These now use values from UIConfig loaded from config.toml */
+        body {
+            font-family: {
+                    {
+                    .UIConfig.BodyFont
+                }
+            }
+
+            ,
+            sans-serif;
+
+            background-color: {
+                    {
+                    .UIConfig.BackgroundColor
+                }
+            }
+
+            ;
+
+            color: {
+                    {
+                    .UIConfig.TextColor
+                }
+            }
+
+            ;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background-color: {
+                    {
+                    .UIConfig.ContainerColor
+                }
+            }
+
+            ;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            max-width: 450px;
+            width: 90%;
+            text-align: center;
+        }
+
+        h1 {
+            color: {
+                    {
+                    .UIConfig.HeadingColor
+                }
+            }
+
+            ;
+            margin-bottom: 20px;
+        }
+
+        img {
+            max-width: 100px;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            text-align: left;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        select {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: sans-serif;
+        }
+
+        textarea {
+            /* Added for future wallet setup, just in case */
+            height: 80px;
+            font-family: monospace;
+            resize: vertical;
+        }
+
+        input[type="submit"],
+        button {
+            background-color: #28a745;
+            /* You could also put this color in config.toml if you want primary button color customization */
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        input[type="submit"]:hover,
+        button:hover {
+            background-color: #218838;
+            /* Darker hover color */
+        }
+
+        .message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .info {
+            background-color: #e2f2ff;
+            color: #0056b3;
+            border: 1px solid #b3d9ff;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 10px;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .device-info {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+            text-align: left;
+        }
+
+        .device-info p {
+            margin-bottom: 5px;
+        }
+
+        .device-info strong {
+            display: inline-block;
+            width: 120px;
+            /* Align labels */
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .button-group button,
+        .button-group input[type="submit"] {
+            flex-grow: 1;
+        }
+    </style>
+    <script>
+        // ... (Your existing JavaScript, no changes needed here) ...
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>{{.Lang.HeadingText}}</h1>
+        {{if .UIConfig.CustomImageURL}}
+        <img src="{{.UIConfig.CustomImageURL}}" alt="Custom Logo">
+        {{end}}
+
+        <div class="device-info">
+            <p><strong>{{.Lang.DeviceIdLabel}}</strong> <span id="device-id-display">{{.DeviceID}}</span>
+                <button onclick="copyToClipboard('device-id-display')">Copy</button>
+            </p>
+            <p><strong>{{.Lang.ClaimCodeLabel}}</strong> <span id="claim-code-display">{{.ClaimCode}}</span>
+                <button onclick="copyToClipboard('claim-code-display')">Copy</button>
+            </p>
+        </div>
+
+        {{if .SuccessMessage}}
+        <p class="message success">{{.SuccessMessage}}</p>
+        <p class="message info">{{.Lang.PostConnectInstructions}}</p>
+        <p class="message info"><a href="{{.LocalNodeSetupLink}}">{{.Lang.LocalNodeSetupLinkText}}</a></p>
+        {{else if .ErrorMessage}}
+        <p class="message error">{{.ErrorMessage}}</p>
+        {{else}}
+        <p class="message info">{{.Lang.InitialMessage}}</p>
+        {{end}}
+
+        <form method="POST" action="/connect"
+            onsubmit="showLoading('submitButton', 'loadingSpinner', 'message', '{{.Lang.ConnectingMessage}}')">
+            <label for="ssid_select">{{.Lang.AvailableNetworksLabel}}</label>
+            <select id="ssid_select" name="ssid_select">
+                {{range .Networks}}
+                <option value="{{.}}">{{.}}</option>
+                {{else}}
+                <option value="">{{.Lang.NoNetworksMessage}}</option>
+                {{end}}
+            </select><br>
+
+            <label for="ssid_manual">{{.Lang.ManualSSIDLabel}}</label><br>
+            <input type="text" id="ssid_manual" name="ssid_manual" placeholder="{{.Lang.ManualSSIDPlaceholder}}"><br>
+
+            <label for="password">{{.Lang.PasswordLabel}}</label><br>
+            <input type="password" id="password" name="password" placeholder="{{.Lang.PasswordPlaceholder}}"><br><br>
+
+            <input type="submit" value="{{.Lang.ConnectButtonText}}" id="submitButton">
+            <div id="loadingSpinner" class="loading-spinner"></div>
+        </form>
+
+        <p><a href="/">{{.Lang.RefreshButtonText}}</a></p>
+    </div>
+</body>
+
+</html>

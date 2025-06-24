@@ -1,0 +1,25 @@
+# zh.toml - Simplified Chinese language strings for pifigo
+
+page_title = "pifigo 设置"
+heading_text = "连接您的设备到无线网络"
+
+connect_button_text = "连接"
+refresh_button_text = "刷新网络"
+available_networks_label = "可用网络:"
+manual_ssid_label = "或手动输入SSID（如果未列出）:"
+password_label = "密码:"
+manual_ssid_placeholder = "输入网络名称"
+password_placeholder = "输入密码"
+no_networks_message = "未找到网络。请尝试刷新或手动输入。"
+initial_message = "请将您的设备连接到您的Wi-Fi网络。"
+connecting_message = "正在尝试连接... 设备将重启。"
+success_message_template = "成功！您的设备正在连接到 '%s'。它将很快重启。请将您的设备重新连接到主Wi-Fi网络，然后导航到 %s 以继续设置。"
+error_message_prefix = "错误: "
+
+# Device Information
+device_id_label = "您的设备ID:"
+claim_code_label = "认领码:"
+post_connect_instructions = "您的设备上线后，您可以使用其设备ID和认领码进行进一步设置。"
+local_node_setup_link_text = "点击此处访问您设备的本地页面。"
+copied_to_clipboard_message = "已复制 '%s' 到剪贴板！"
+# Mnemonic/wallet related strings removed

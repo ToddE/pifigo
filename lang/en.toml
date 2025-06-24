@@ -1,0 +1,25 @@
+# en.toml - English language strings for pifigo
+
+page_title = "pifigo Setup"
+heading_text = "Connect Your Device to WiFi"
+
+connect_button_text = "Connect"
+refresh_button_text = "Refresh Networks"
+available_networks_label = "Available Networks:"
+manual_ssid_label = "Or Enter SSID Manually (if not listed):"
+password_label = "Password:"
+manual_ssid_placeholder = "Enter network name"
+password_placeholder = "Enter password"
+no_networks_message = "No networks found. Try refreshing or enter manually."
+initial_message = "Please connect your device to your Wi-Fi network."
+connecting_message = "Attempting to connect... Device will reboot."
+success_message_template = "Success! Your Device is connecting to '%s'. It will reboot shortly. Please reconnect your device to your main Wi-Fi network. Then, navigate to %s to continue setup."
+error_message_prefix = "Error: "
+
+# Device Information
+device_id_label = "Your Device ID:"
+claim_code_label = "Claim Code:"
+post_connect_instructions = "Once your device is online, you can use its Device ID and Claim Code for further setup."
+local_node_setup_link_text = "Click here to access your device's local page."
+copied_to_clipboard_message = "Copied '%s' to clipboard!"
+# Mnemonic/wallet related strings removed

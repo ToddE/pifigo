@@ -1,0 +1,25 @@
+# es.toml - Spanish (Latin America) language strings for pifigo
+
+page_title = "Configuración pifigo"
+heading_text = "Conecte su Dispositivo al WiFi"
+
+connect_button_text = "Conectar"
+refresh_button_text = "Actualizar Redes"
+available_networks_label = "Redes disponibles:"
+manual_ssid_label = "O ingrese el SSID manualmente (si no está en la lista):"
+password_label = "Contraseña:"
+manual_ssid_placeholder = "Ingrese el nombre de la red"
+password_placeholder = "Ingrese la contraseña"
+no_networks_message = "No se encontraron redes. Intente actualizar o ingrésela manualmente."
+initial_message = "Por favor, conecte su dispositivo a su red Wi-Fi."
+connecting_message = "Intentando conectar... El dispositivo se reiniciará."
+success_message_template = "¡Éxito! Su dispositivo se está conectando a '%s'. Se reiniciará en breve. Por favor, reconecte su dispositivo a su red Wi-Fi principal y luego navegue a %s para continuar la configuración."
+error_message_prefix = "Error: "
+
+# Device Information
+device_id_label = "Su ID de Dispositivo:"
+claim_code_label = "Código de Reclamo:"
+post_connect_instructions = "Una vez que su dispositivo esté en línea, puede usar su ID de Dispositivo y su Código de Reclamo para una configuración posterior."
+local_node_setup_link_text = "Haga clic aquí para acceder a la página local de su dispositivo."
+copied_to_clipboard_message = "¡Copiado '%s' al portapapeles!"
+# Mnemonic/wallet related strings removed

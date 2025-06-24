@@ -1,0 +1,22 @@
+# config.toml - Default Configuration for pifigo (within its own repository)
+
+# --- UI CUSTOMIZATION SETTINGS ---
+[ui]
+page_title = "PiFigo Setup"
+heading_text = "Connect Your Device to WiFi"
+body_font = "Arial"
+background_color = "#f0f2f5"
+text_color = "#333"
+container_color = "#ffffff"
+heading_color = "#007bff"
+custom_image_url = "logo.svg" # Relative to /etc/pifigo/assets/
+
+[network]
+ap_ssid = "PiFigoSetup"
+ap_password = "87654321" # CHANGE THIS DEFAULT IN PRODUCTION!
+ap_channel = 7
+wifi_country = "US" # IMPORTANT: Set your Wi-Fi regulatory domain (e.g., US, GB, DE)
+device_hostname = "pifigo" # Hostname for mDNS
+
+# --- LANGUAGE SETTING (specific to pifigo) ---
+language = "en" # Default language for pifigo

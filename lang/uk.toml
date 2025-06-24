@@ -1,0 +1,25 @@
+# uk.toml - Ukrainian language strings for pifigo
+
+page_title = "Налаштування pifigo"
+heading_text = "Підключіть свій Пристрій до WiFi"
+
+connect_button_text = "Підключити"
+refresh_button_text = "Оновити Мережі"
+available_networks_label = "Доступні мережі:"
+manual_ssid_label = "Або введіть SSID вручну (якщо немає у списку):"
+password_label = "Пароль:"
+manual_ssid_placeholder = "Введіть назву мережі"
+password_placeholder = "Введіть пароль"
+no_networks_message = "Мережі не знайдено. Спробуйте оновити або ввести вручну."
+initial_message = "Будь ласка, підключіть свій пристрій до мережі Wi-Fi."
+connecting_message = "Спроба підключення... Пристрій перезавантажиться."
+success_message_template = "Успіх! Ваш пристрій підключається до '%s'. Він незабаром перезавантажиться. Будь ласка, перепідключіть свій пристрій до основної мережі Wi-Fi, а потім перейдіть за посиланням %s, щоб продовжити налаштування."
+error_message_prefix = "Помилка: "
+
+# Device Information
+device_id_label = "Ідентифікатор Вашого Пристрою:"
+claim_code_label = "Код запиту:"
+post_connect_instructions = "Після того, як ваш пристрій буде в мережі, ви можете використовувати його ідентифікатор пристрою та код запиту для подальшого налаштування."
+local_node_setup_link_text = "Натисніть тут, щоб перейти на локальну сторінку пристрою."
+copied_to_clipboard_message = "Скопійовано '%s' у буфер обміну!"
+# Mnemonic/wallet related strings removed

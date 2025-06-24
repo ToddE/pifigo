@@ -1,0 +1,56 @@
+#!/bin/bash
+# build-pifigo.sh - Builds the pifigo executable for various Raspberry Pi architectures.
+
+set -e # Exit immediately if a command exits with a non-zero status.
+
+APP_NAME="pifigo"
+SOURCE_PATH="./cmd/${APP_NAME}/" # Path to the main package within this repo
+
+# --- Manual Version Number ---
+# Update this string whenever you build a new version.
+VERSION_CLEAN="0.0.1" # <<<--- MANUALLY UPDATE THIS FOR EACH NEW VERSION
+
+# --- Determine Version Number when using git ---
+# Try to get the version from git tag (e.g., v1.0.0)
+#VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0-dev")
+# Remove 'v' prefix if desired for binary name:
+#VERSION_CLEAN=${VERSION#v} 
+
+# clean go start
+go clean -cache
+go clean -modcache
+go mod tidy
+
+echo "Building ${APP_NAME} (Version: ${VERSION_CLEAN}) for multiple Raspberry Pi targets..."
+
+# Function to build for a specific target
+build_target() {
+    local arch_suffix="$1" # e.g., _linux_armv6
+    local goarm_val="$2"   # e.g., 6 or 7 (or empty for arm64)
+    local goarch_val="$3"  # e.g., arm or arm64
+
+    OUTPUT_NAME="${APP_NAME}_${VERSION_CLEAN}${arch_suffix}"
+    
+    echo "  Building for linux/${goarch_val}/${goarm_val} -> ${OUTPUT_NAME}"
+
+    if [ -z "$goarm_val" ]; then # For arm64, GOARM is not set
+        GOOS=linux GOARCH="$goarch_val" CGO_ENABLED=0 go build -o "$OUTPUT_NAME" "$SOURCE_PATH"
+    else
+        GOOS=linux GOARCH="$goarch_val" GOARM="$goarm_val" CGO_ENABLED=0 go build -o "$OUTPUT_NAME" "$SOURCE_PATH"
+    fi
+    echo "    Output: ${OUTPUT_NAME}"
+}
+
+# --- Build for all targets ---
+
+# 1. Build for ARMv6 (Widest 32-bit compatibility)
+build_target "_linux_armv6" "6" "arm"
+
+# 2. Build for ARMv7 (Optimized 32-bit for newer Pis)
+build_target "_linux_armv7" "7" "arm"
+
+# 3. Build for ARM64 (Native 64-bit)
+build_target "_linux_arm64" "" "arm64"
+
+echo "All ${APP_NAME} builds complete!"
+ls -lh ${APP_NAME}_${VERSION_CLEAN}_linux_armv6 ${APP_NAME}_${VERSION_CLEAN}_linux_armv7 ${APP_NAME}_${VERSION_CLEAN}_linux_arm64
