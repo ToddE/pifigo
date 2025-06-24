@@ -12,6 +12,7 @@
   - [4. Installation](#4-installation)
     - [Step 1: Prepare Your Device OS](#step-1-prepare-your-device-os)
     - [Step 2: Obtain pifigo Binaries \& Installer](#step-2-obtain-pifigo-binaries--installer)
+    - [OLD Step 2: Obtain pifigo Binaries \& Installer](#old-step-2-obtain-pifigo-binaries--installer)
     - [Step 3: Run the Installer Script](#step-3-run-the-installer-script)
   - [5. Initial Setup Flow (User Guide)](#5-initial-setup-flow-user-guide)
   - [6. Configuration](#6-configuration)
@@ -72,34 +73,49 @@ This guide assumes you have a freshly flashed minimal Linux OS on your device an
         * **If your device is Wi-Fi-only (e.g., Pi Zero W/2W, some Orange Pis):** **You MUST configure your home Wi-Fi here** to gain initial SSH access. `pifigo` will then detect your network manager and reconfigure Wi-Fi for its setup AP after installation.
     * **Set locale settings:** Choose your correct **Wi-Fi country** (e.g., `US`, `GB`, `DE`). This is absolutely essential for Wi-Fi to function correctly and legally.
 3.  **Boot Device:** Insert the SD card into your device and power it on.
-4.  **Initial Access:** Connect to your device via SSH (e.g., using USB Gadget Mode for Pi Zeros: `ssh pi@raspberrypi.local` or `ssh pi@192.168.7.2`). If you configured Wi-Fi, you can SSH to the IP your router assigns (`ssh pi@your_device_hostname.local` or find its IP on your router).
+4.  **Initial Access:** Connect to your device via SSH (e.g., using USB Gadget Mode for Pi Zeros: `ssh pi@raspberrypi.local` or `ssh pi@192.168.7.2`). If you configured Wi-Fi, you can SSH to the IP your router assigns (`ssh [username]@[hostname/ip].local` or find its IP on your router).
 
 ### Step 2: Obtain pifigo Binaries & Installer
 
 On your **development machine**:
 
-1.  **Obtain the pifigo project files:**
-    Download or otherwise obtain the `pifigo` project source code (e.g., as a `.zip` file from a release or directly from a local development folder if not using Git yet). Navigate into the `pifigo` project's root directory.
-    *(Future: If using Git, this step would be `git clone https://github.com/your-org/pifigo.git`)*
-2.  **Build pifigo binaries for your target architecture(s):**
-    Run the `build-pifigo.sh` script to compile `pifigo` for common Raspberry Pi variants.
+1.  **Clone the pifigo repository:**
     ```bash
-    chmod +x build-pifigo.sh
-    ./build-pifigo.sh
+    git clone https://github.com/ToddE/pifigo.git
+    cd pifigo
     ```
-    This will generate binaries like `pifigo_0.0.1_linux_armv6`, `pifigo_0.0.1_linux_armv7`, `pifigo_0.0.1_linux_arm64` in your `pifigo/` directory.
-3.  **Choose the correct binary:** Select the binary matching your device's OS bitness and ARM version (e.g., `pifigo_0.0.1_linux_armv7` for a Pi Zero 2 W running 32-bit OS, or `pifigo_0.0.1_linux_arm64` for a 64-bit OS).
-4.  **Transfer files to your device:**
-    ```bash
-    # Create a temporary staging directory on the device
-    ssh pi@your_device_hostname.local "mkdir /tmp/pifigo_staging"
+    *(If you prefer to download a release archive, visit the [Releases page](https://github.com/ToddE/pifigo/releases) and download the appropriate release binary. Extract it and navigate into the `pifigo` directory.)*
 
-    # Transfer the chosen binary and the installer script
-    scp ./pifigo_0.0.1_linux_armv7 pi@your_device_hostname.local:/tmp/pifigo_staging/pifigo # Adjust binary name
-    scp ./install.sh pi@your_device_hostname.local:/tmp/pifigo_staging/install.sh
-    scp ./config.toml pi@your_device_hostname.local:/tmp/pifigo_staging/config.toml
-    scp -r ./lang pi@your_device_hostname.local:/tmp/pifigo_staging/lang
-    scp -r ./cmd/pifigo/assets pi@your_device_hostname.local:/tmp/pifigo_staging/assets # Copy the assets source dir
+2.  **Build pifigo binaries for your target architecture(s):**
+    Run the `build.sh` script to compile `pifigo` for common Raspberry Pi variants. This script will automatically use the Git tag version (e.g., `v1.0.0`) in the binary name.
+    ```bash
+    chmod +x build.sh
+    ./build.sh
+    ```
+    This will generate binaries like `pifigo_1.0.0_linux_armv6`, `pifigo_1.0.0_linux_armv7`, `pifigo_1.0.0_linux_arm64` in your `pifigo/releases/` directory.
+
+3.  **Choose the correct binary:** Select the binary matching your device's OS bitness and ARM version from the `releases/` directory.
+
+4.  **Transfer files to your device:**
+
+    #### Example: Adjust binary name based on your choice and version
+    ```bash
+    BINARY_NAME="pifigo_1.0.0_linux_armv7" # or _linux_arm64, etc.
+    ```
+
+    #### Create a temporary staging directory on the device 
+    NOTE: replace `[username]` with the username and `[hostname/ip]` you use to login to your device
+    ```bash
+    ssh [username]@[hostname/ip] "mkdir -p /tmp/pifigo_staging"
+    ```
+
+    #### Transfer the chosen binary and the installer script, config, lang, and assets
+    ```bash
+    scp "./releases/$BINARY_NAME" [username]@[hostname/ip]:"/tmp/pifigo_staging/pifigo"
+    scp "./install.sh" [username]@[hostname/ip]:"/tmp/pifigo_staging/install.sh"
+    scp "./config.toml" [username]@[hostname/ip]:"/tmp/pifigo_staging/config.toml"
+    scp -r "./lang" [username]@[hostname/ip]:"/tmp/pifigo_staging/"
+    scp -r "./cmd/pifigo/assets" [username]@[hostname/ip]:"/tmp/pifigo_staging/assets" # Copy the assets source dir
     ```
 
 ### Step 3: Run the Installer Script
