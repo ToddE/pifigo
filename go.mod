@@ -1,6 +1,6 @@
 // pifigo/go.mod
 // module pifigo
-module pifigo
+module github.com/ToddE/pifigo
 
 go 1.24
 
