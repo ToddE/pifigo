@@ -1,6 +1,6 @@
 # pifigo - Headless Wi-Fi Setup for Embedded Linux Devices
 
-![pifigo Logo Placeholder](assets/randao_logo.png) `pifigo` (pronounced "pee-fye-go") is a lightweight, Go-powered application designed to simplify the initial Wi-Fi configuration of headless Linux-based embedded devices (like Raspberry Pi, Orange Pi, or other single-board computers) via a web browser. It sets up a temporary Access Point (AP) and a captive portal, allowing users to connect their device to their home Wi-Fi network easily, without needing a monitor, keyboard, or mouse.
+![pifigo Logo Placeholder](/cmd/assets/logo.png) **pifigo** is a lightweight, Go-powered application designed to simplify the initial Wi-Fi configuration of headless Linux-based embedded devices (like Raspberry Pi, Orange Pi, or other single-board computers) via a web browser. It sets up a temporary Access Point (AP) and a captive portal, allowing users to connect their device to their home Wi-Fi network easily, without needing a monitor, keyboard, or mouse.
 
 ## Table of Contents
 
