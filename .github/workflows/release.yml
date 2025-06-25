@@ -1,4 +1,4 @@
-name: pifigo BUILD with script
+name: pifigo BUILD (no script)
 
 on:
   workflow_dispatch:
@@ -98,7 +98,7 @@ jobs:
 
       - name: Prepare Release Artifact
         run: |
-          echo "APPNAME IS: ${APPNAME} before setting in this step"
+          echo -e "APPNAME IS: ${APPNAME} before setting in this step"
           APP_NAME="pifigo"
           VERSION_CLEAN="${{ env.RELEASE_VERSION }}" # Get version from previous step
           ARCHIVE_SUFFIX="${{ matrix.archive_suffix }}"
