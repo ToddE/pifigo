@@ -1,5 +1,4 @@
 name: pifigo BUILDER v0.3 
-
 on:
   workflow_dispatch:
     inputs:
