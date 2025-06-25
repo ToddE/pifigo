@@ -7,12 +7,12 @@ on:
         description: 'Specify the tag to trigger the workflow against'
         required: true
         type: string
-  push:
-    tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+' # Trigger on tags like v1.0.0, v0.1.2
-      - 'v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+' # Optional: for release candidates (e.g., v1.0.0-rc1)
-      - 'v[0-9]+.[0-9]+.[0-9]+-test[0-9]+' # Optional: for test (e.g., v1.0.0-test1)
-      - 'v[0-9]+.[0-9]+.[0-9]+-manual[0-9]+' # Optional: for manual (e.g., v1.0.0-test1)
+  # push:
+  #   tags:
+  #     - 'v[0-9]+.[0-9]+.[0-9]+' # Trigger on tags like v1.0.0, v0.1.2
+  #     - 'v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+' # Optional: for release candidates (e.g., v1.0.0-rc1)
+  #     - 'v[0-9]+.[0-9]+.[0-9]+-test[0-9]+' # Optional: for test (e.g., v1.0.0-test1)
+  #     - 'v[0-9]+.[0-9]+.[0-9]+-manual[0-9]+' # Optional: for manual (e.g., v1.0.0-test1)
 
 jobs:
   build_for_release:
