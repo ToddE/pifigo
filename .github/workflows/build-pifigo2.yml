@@ -1,8 +1,7 @@
-name: pifigo BUILDER v0.4
+name: pifigo BUILDER v0.3 
 
-# Add explicit permissions for GITHUB_TOKEN
 permissions:
-  contents: write  # Required for creating releases and uploading assets
+  contents: write  # Required for pushing commits and creating releases
   actions: read    # Required for accessing workflow artifacts
 
 on:
@@ -22,40 +21,24 @@ on:
 
 jobs:
   build_for_release:
-    name: Build & Upload for ${{ matrix.os }}/${{ matrix.go_arch }} 
+    name: Build & Create Installation Package
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            go_arch: arm
-            go_arm: 6
-            archive_suffix: _linux_armv6
-            asset_name: pifigo_linux_armv6
-          - os: ubuntu-latest
-            go_arch: arm
-            go_arm: 7
-            archive_suffix: _linux_armv7
-            asset_name: pifigo_linux_armv7
-          - os: ubuntu-latest
-            go_arch: arm64
-            go_arm: "" 
-            archive_suffix: _linux_arm64
-            asset_name: pifigo_linux_arm64
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
         timeout-minutes: 2
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: '1.23'
         timeout-minutes: 2
 
-      - name: Get Release Version & Tag (Robust)
+      - name: Get Release Version & Tag
         id: get_version_info
         run: |
           set -x
@@ -68,9 +51,8 @@ jobs:
 
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo "RELEASE_VERSION=${{ github.event.inputs.release_version }}" >> "$GITHUB_ENV"
-            echo "RELEASE_TAG=${{ github.event.inputs.release_version }}" >> "$GITHUB_ENV"
+            echo "RELEASE_tag=${{ github.event.inputs.release_version }}" >> "$GITHUB_ENV"
             echo "IS_RELEASE_TAG=${{ startsWith(github.event.inputs.release_version, 'v') }}" >> "$GITHUB_ENV"
-            # FIXED: Changed version_tag to release_version in the prerelease check
             echo "PRERELEASE_FLAG=${{ contains(github.event.inputs.release_version, '-rc') || contains(github.event.inputs.release_version, '-beta') }}" >> "$GITHUB_ENV"
             
           else
@@ -80,93 +62,271 @@ jobs:
             echo "PRERELEASE_FLAG=false" >> "$GITHUB_ENV"
           fi
           
-          echo "DEBUG: Determined RELEASE_VERSION: $RELEASE_VERSION"
-          echo "DEBUG: Determined RELEASE_TAG: $RELEASE_TAG"
-          echo "DEBUG: IS_RELEASE_TAG: $IS_RELEASE_TAG"
-          echo "DEBUG: PRERELEASE_FLAG: $PRERELEASE_FLAG"
+          echo "DEBUG: RELEASE_VERSION=$RELEASE_VERSION"
+          echo "DEBUG: RELEASE_TAG=$RELEASE_TAG"
         timeout-minutes: 1
 
-      - name: Compile pifigo for ${{ matrix.go_arch }}/${{ matrix.go_arm }}
+      - name: Create releases directory structure
+        run: |
+          mkdir -p ./releases
+          echo "DEBUG: Created ./releases directory"
+        timeout-minutes: 1
+
+      - name: Build all architectures
         run: |
           set -x
           
           APP_NAME="pifigo"
           SOURCE_PATH="./cmd/${APP_NAME}/"
-          OUTPUT_DIR="releases" 
-
-          mkdir -p "$OUTPUT_DIR"
-
-          BINARY_FILENAME="${APP_NAME}_${{ env.RELEASE_VERSION }}${{ matrix.archive_suffix }}" 
-          OUTPUT_BINARY_PATH="${OUTPUT_DIR}/${BINARY_FILENAME}"
-
-          export GOOS=linux
-          export GOARCH=${{ matrix.go_arch }}
+          OUTPUT_DIR="releases"
           
-          if [ -n "${{ matrix.go_arm }}" ]; then 
-            export GOARM=${{ matrix.go_arm }}
-          else
-            export GOARM=""
-          fi
+          # Define all target architectures
+          declare -a BUILDS=(
+            "arm:6:_linux_armv6"
+            "arm:7:_linux_armv7" 
+            "arm64::_linux_arm64"
+          )
+          
+          for build in "${BUILDS[@]}"; do
+            IFS=':' read -r go_arch go_arm archive_suffix <<< "$build"
+            
+            echo "DEBUG: Building for GOARCH=$go_arch GOARM=$go_arm SUFFIX=$archive_suffix"
+            
+            # Set compilation environment
+            export GOOS=linux
+            export GOARCH="$go_arch"
+            if [ -n "$go_arm" ]; then
+              export GOARM="$go_arm"
+            else
+              export GOARM=""
+            fi
+            
+            # Binary filename matches what install.sh expects
+            BINARY_FILENAME="${APP_NAME}_${{ env.RELEASE_VERSION }}${archive_suffix}"
+            OUTPUT_BINARY_PATH="${OUTPUT_DIR}/${BINARY_FILENAME}"
+            
+            echo "DEBUG: Compiling binary: $OUTPUT_BINARY_PATH"
+            
+            # Compile the binary
+            CGO_ENABLED=0 go build -o "$OUTPUT_BINARY_PATH" "$SOURCE_PATH"
+            chmod +x "$OUTPUT_BINARY_PATH"
+            
+            echo "DEBUG: Successfully built $OUTPUT_BINARY_PATH"
+          done
+          
+          # List all created binaries
+          echo "DEBUG: Created binaries:"
+          ls -la ./releases/
+        timeout-minutes: 10
 
-          echo "DEBUG: Compiling with GOOS=$GOOS GOARCH=$GOARCH GOARM=$GOARM VERSION_CLEAN=${{ env.RELEASE_VERSION }}"
-          echo "DEBUG: Output path: $OUTPUT_BINARY_PATH"
-          echo "DEBUG: Source path: $SOURCE_PATH"
-
-          CGO_ENABLED=0 go build -o "$OUTPUT_BINARY_PATH" "$SOURCE_PATH"
-          echo "DEBUG: Compilation complete."
-        working-directory: . 
-        timeout-minutes: 5 
-
-      - name: Prepare Release Artifact
+      - name: Create installation package
         run: |
           set -x
-
-          APP_NAME="pifigo"
-          VERSION_CLEAN="${{ env.RELEASE_VERSION }}" 
-          ARCHIVE_SUFFIX="${{ matrix.archive_suffix }}"
-          OUTPUT_DIR="releases"
-
-          BINARY_FILENAME="${APP_NAME}_${VERSION_CLEAN}${ARCHIVE_SUFFIX}" 
-          SOURCE_BINARY_FULL_PATH="./${OUTPUT_DIR}/${BINARY_FILENAME}"
-
-          STAGING_DIR_IN_TAR="${APP_NAME}-${VERSION_CLEAN}${ARCHIVE_SUFFIX}" 
-          ARCHIVE_NAME="${STAGING_DIR_IN_TAR}.tar.gz" 
           
-          echo "DEBUG: Binary filename generated by build step: $BINARY_FILENAME"
-          echo "DEBUG: Full source path of binary to package: $SOURCE_BINARY_FULL_PATH"
-          echo "DEBUG: Staging directory for tarball: ./${OUTPUT_DIR}/${STAGING_DIR_IN_TAR}/"
-          echo "DEBUG: Final archive name: ${OUTPUT_DIR}/${ARCHIVE_NAME}"
-
-          if [ ! -f "$SOURCE_BINARY_FULL_PATH" ]; then
-            echo "ERROR: Source binary not found for packaging: $SOURCE_BINARY_FULL_PATH"
+          APP_NAME="pifigo"
+          VERSION_CLEAN="${{ env.RELEASE_VERSION }}"
+          
+          # Create the installation package directory structure
+          PKG_NAME="${APP_NAME}-installer-${VERSION_CLEAN}"
+          PKG_DIR="./${PKG_NAME}"
+          
+          echo "DEBUG: Creating installation package: $PKG_NAME"
+          
+          # Create package directory structure
+          mkdir -p "$PKG_DIR"
+          mkdir -p "$PKG_DIR/releases"
+          mkdir -p "$PKG_DIR/cmd/$APP_NAME/assets"
+          mkdir -p "$PKG_DIR/lang"
+          
+          # Copy install.sh script
+          if [ ! -f "./install.sh" ]; then
+            echo "ERROR: install.sh not found in repository root"
             exit 1
           fi
+          cp "./install.sh" "$PKG_DIR/"
+          chmod +x "$PKG_DIR/install.sh"
+          echo "DEBUG: Copied install.sh"
+          
+          # Copy config.toml (needed by install.sh to extract Wi-Fi settings)
+          if [ ! -f "./config.toml" ]; then
+            echo "ERROR: config.toml not found in repository root"
+            exit 1
+          fi
+          cp "./config.toml" "$PKG_DIR/"
+          echo "DEBUG: Copied config.toml"
+          
+          # Copy all compiled binaries to releases subdirectory
+          cp ./releases/${APP_NAME}_* "$PKG_DIR/releases/"
+          echo "DEBUG: Copied all compiled binaries"
+          
+          # Copy assets directory (referenced by install.sh as APP_ASSETS_SOURCE_DIR)
+          if [ -d "./cmd/$APP_NAME/assets" ]; then
+            cp -r "./cmd/$APP_NAME/assets"/* "$PKG_DIR/cmd/$APP_NAME/assets/"
+            echo "DEBUG: Copied assets directory"
+          else
+            echo "WARNING: Assets directory ./cmd/$APP_NAME/assets not found"
+          fi
+          
+          # Copy lang directory (referenced by install.sh)
+          if [ -d "./lang" ]; then
+            cp -r "./lang"/* "$PKG_DIR/lang/"
+            echo "DEBUG: Copied lang directory"
+          else
+            echo "WARNING: Lang directory ./lang not found"
+          fi
+          
+          # Copy systemd service file if it exists
+          if [ -f "./${APP_NAME}.service" ]; then
+            cp "./${APP_NAME}.service" "$PKG_DIR/"
+            echo "DEBUG: Copied systemd service file"
+          fi
+          
+          # Create README for the installer package
+          cat > "$PKG_DIR/README.md" << EOF
+          # ${APP_NAME} Installation Package v${VERSION_CLEAN}
+          
+          ## Installation Instructions
+          
+          1. Extract this package on your target device (Raspberry Pi)
+          2. Run the installer with sudo privileges:
+             \`\`\`bash
+             sudo ./install.sh
+             \`\`\`
+          
+          ## What's Included
+          
+          - Pre-compiled binaries for ARMv6, ARMv7, and ARM64 architectures
+          - Configuration files (config.toml, language files)
+          - Assets and systemd service files
+          - Automated installation script
+          
+          ## Supported Architectures
+          
+          - **ARMv6**: Raspberry Pi Zero, Pi 1
+          - **ARMv7**: Raspberry Pi 2, 3, 4 (32-bit OS)
+          - **ARM64**: Raspberry Pi 3, 4 (64-bit OS)
+          
+          The installer will automatically detect your architecture and install the correct binary.
+          
+          ## Manual Installation
+          
+          If you prefer to install manually, the installer script performs these steps:
+          1. Detects target architecture
+          2. Copies appropriate binary to /usr/local/bin/${APP_NAME}
+          3. Creates configuration directories in /etc/${APP_NAME}
+          4. Sets up systemd service
+          5. Configures permissions and ownership
+          
+          EOF
+          
+          echo "DEBUG: Created installation package structure:"
+          find "$PKG_DIR" -type f | head -20
+          
+          # Create tar.gz archive
+          TAR_NAME="${PKG_NAME}.tar.gz"
+          tar -czf "$TAR_NAME" "$PKG_NAME"
+          echo "DEBUG: Created $TAR_NAME"
+          
+          # Create zip archive  
+          ZIP_NAME="${PKG_NAME}.zip"
+          zip -r "$ZIP_NAME" "$PKG_NAME"
+          echo "DEBUG: Created $ZIP_NAME"
+          
+          # Set environment variables for next steps
+          echo "PACKAGE_TAR_PATH=./${TAR_NAME}" >> "$GITHUB_ENV"
+          echo "PACKAGE_ZIP_PATH=./${ZIP_NAME}" >> "$GITHUB_ENV"
+          echo "PACKAGE_TAR_NAME=${TAR_NAME}" >> "$GITHUB_ENV"
+          echo "PACKAGE_ZIP_NAME=${ZIP_NAME}" >> "$GITHUB_ENV"
+          echo "PACKAGE_DIR_NAME=${PKG_NAME}" >> "$GITHUB_ENV"
+          
+          # Clean up package directory to save space
+          rm -rf "$PKG_DIR"
+          echo "DEBUG: Cleaned up package directory"
+        timeout-minutes: 5
 
-          mkdir -p "./${OUTPUT_DIR}/${STAGING_DIR_IN_TAR}/"
-          echo "DEBUG: Created staging directory: ./${OUTPUT_DIR}/${STAGING_DIR_IN_TAR}/"
+      - name: Commit release files to repository (optional)
+        run: |
+          set -x
+          
+          # Configure git
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # Add the individual binaries to releases directory (for direct access)
+          git add ./releases/
+          
+          # Add the installation packages to root (for easy download)
+          git add ./${{ env.PACKAGE_TAR_NAME }}
+          git add ./${{ env.PACKAGE_ZIP_NAME }}
+          
+          # Check if there are changes to commit
+          if git diff --staged --exit-code; then
+            echo "No changes to commit"
+          else
+            git commit -m "Release ${{ env.RELEASE_VERSION }} - Add installation packages and binaries
+            
+            - Added compiled binaries for ARMv6, ARMv7, ARM64
+            - Created complete installation package: ${{ env.PACKAGE_TAR_NAME }}
+            - Created ZIP package for Windows users: ${{ env.PACKAGE_ZIP_NAME }}
+            - Installation packages include install.sh, config files, and assets"
+            
+            git push
+            echo "DEBUG: Committed and pushed release files"
+          fi
+        timeout-minutes: 3
+        continue-on-error: true  # Don't fail the workflow if commit fails
 
-          mv "$SOURCE_BINARY_FULL_PATH" "./${OUTPUT_DIR}/${STAGING_DIR_IN_TAR}/${APP_NAME}"
-          echo "DEBUG: Moved binary '${SOURCE_BINARY_FULL_PATH}' into staging as '${APP_NAME}'."
-
-          tar -czvf "./${OUTPUT_DIR}/${ARCHIVE_NAME}" -C "./${OUTPUT_DIR}" "${STAGING_DIR_IN_TAR}"
-          echo "DEBUG: Created tar.gz archive: ${ARCHIVE_NAME}."
-
-          rm -rf "./${OUTPUT_DIR}/${STAGING_DIR_IN_TAR}"
-          echo "DEBUG: Cleaned up temporary staging directory."
-
-          echo "ASSET_PATH=./${OUTPUT_DIR}/${ARCHIVE_NAME}" >> "$GITHUB_ENV"
-          echo "ASSET_NAME=${ARCHIVE_NAME}" >> "$GITHUB_ENV"
-        working-directory: . 
-        timeout-minutes: 2
-
-      - name: Upload Release Asset
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
-        if: ${{ env.IS_RELEASE_TAG == 'true' }} 
+        if: ${{ env.IS_RELEASE_TAG == 'true' }}
         with:
-          files: ${{ env.ASSET_PATH }}
-          name: Release ${{ env.RELEASE_VERSION }}
+          files: |
+            ${{ env.PACKAGE_TAR_PATH }}
+            ${{ env.PACKAGE_ZIP_PATH }}
+          name: "pifigo v${{ env.RELEASE_VERSION }}"
           tag_name: ${{ env.RELEASE_TAG }}
           prerelease: ${{ env.PRERELEASE_FLAG == 'true' }}
+          body: |
+            # pifigo Release v${{ env.RELEASE_VERSION }}
+            
+            ## 📦 Installation Packages
+            
+            Download the appropriate package for your system:
+            
+            - **${{ env.PACKAGE_TAR_NAME }}** - Complete installation package (recommended for Linux/Raspberry Pi)
+            - **${{ env.PACKAGE_ZIP_NAME }}** - ZIP format (for Windows users)
+            
+            ## 🚀 Quick Installation
+            
+            1. Download and extract the installation package
+            2. Run on your Raspberry Pi:
+               ```bash
+               sudo ./install.sh
+               ```
+            
+            ## 📋 What's Included
+            
+            Each installation package contains:
+            - ✅ Pre-compiled binaries for all Raspberry Pi architectures (ARMv6, ARMv7, ARM64)
+            - ✅ Configuration files and language support
+            - ✅ systemd service files (currently created by script)
+            - ✅ Assets for captive portal
+            - ✅ Automated installation script with architecture detection
+            - ✅ Complete setup documentation
+            
+            ## 🎯 Supported Hardware
+            
+            | Architecture | Devices |
+            |--------------|---------|
+            | **ARMv6** | Raspberry Pi Zero, Pi 1 |
+            | **ARMv7** | Raspberry Pi 2, 3, 4 (32-bit OS) |
+            | **ARM64** | Raspberry Pi 3, 4 (64-bit OS) |
+            
+            The installer automatically detects your device architecture and installs the correct binary.
+            
+            ## 🔧 Manual Access to Binaries
+            
+            Individual compiled binaries are also available in the repository's `releases/` directory if needed for custom installations.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        timeout-minutes: 2
+        timeout-minutes: 3
