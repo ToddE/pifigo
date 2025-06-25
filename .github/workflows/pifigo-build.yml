@@ -25,17 +25,29 @@ jobs:
     runs-on: ubuntu-latest # Using GitHub-hosted runner
 
     strategy:
-      # Optional: To run matrix jobs serially if needed (usually parallel is faster)
-      # Uncomment the line below to enforce serial execution of matrix jobs.
-      # max-parallel: 1
-      include:
+      matrix:
         # Define the target architectures and OS versions for cross-compilation
-        # 'go_arm' is empty for ARM64 builds
-        # 'asset_name' is for the final archive name (e.g., pifigo-1.0.0_linux_armv6.tar.gz)
-          - os: ubuntu-latest; go_arch: arm;    go_arm: 6; archive_suffix: _linux_armv6;   asset_name: pifigo_linux_armv6
-          - os: ubuntu-latest; go_arch: arm;    go_arm: 7; archive_suffix: _linux_armv7;   asset_name: pifigo_linux_armv7
-          - os: ubuntu-latest; go_arch: arm64;   go_arm: ""; archive_suffix: _linux_arm64;  asset_name: pifigo_linux_arm64
-          
+          include:
+          # Linux ARMv6 (e.g., Raspberry Pi 1, Pi Zero W)
+          - os: ubuntu-latest
+            go_arch: arm
+            go_arm: 6
+            archive_suffix: _linux_armv6
+            asset_name: pifigo_linux_armv6
+
+          # Linux ARMv7 (e.g., Raspberry Pi 2/3/4, Pi Zero 2 W with 32-bit OS)
+          - os: ubuntu-latest
+            go_arch: arm
+            go_arm: 7
+            archive_suffix: _linux_armv7
+            asset_name: pifigo_linux_armv7
+
+          # Linux ARM64 (e.g., Raspberry Pi 3/4, Pi Zero 2 W with 64-bit OS)
+          - os: ubuntu-latest
+            go_arch: arm64
+            go_arm: "" # GOARM is not used for arm64
+            archive_suffix: _linux_arm64
+            asset_name: pifigo_linux_arm64
           # Optional: Add other targets if desired
           # - os: ubuntu-latest; go_arch: amd64;   go_arm: ""; archive_suffix: _linux_amd64;  asset_name: pifigo_linux_amd64
           # - os: macos-latest; go_arch: arm64;   go_arm: ""; archive_suffix: _darwin_arm64; asset_name: pifigo_darwin_arm64
