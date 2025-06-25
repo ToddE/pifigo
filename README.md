@@ -5,7 +5,6 @@
 # THIS IS A WORK IN PROGRESS
 
 ## Table of Contents
-
 - [THIS IS A WORK IN PROGRESS](#this-is-a-work-in-progress)
   - [Table of Contents](#table-of-contents)
   - [1. Features](#1-features)
