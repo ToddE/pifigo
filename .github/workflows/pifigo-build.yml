@@ -1,4 +1,4 @@
-name: pifigo BUILDER v0.0.3 # Workflow name - consider a more descriptive name if this is the release workflow
+name: pifigo BUILDER v0.3 
 
 on:
   workflow_dispatch:
