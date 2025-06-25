@@ -1,4 +1,4 @@
-name: pifigo BUILDER v0.3 
+name: pifigo BUILDER v0.4
 
 # Add explicit permissions for GITHUB_TOKEN
 permissions:
