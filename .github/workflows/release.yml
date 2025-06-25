@@ -1,4 +1,4 @@
-name: Build pifigo (old)
+name: pifigo BUILD with script
 
 on:
   workflow_dispatch:
@@ -7,10 +7,10 @@ on:
         description: 'Specify the tag to trigger the workflow against'
         required: true
         type: string
-  # push:
-  #   tags:
-  #     - 'v[0-9]+.[0-9]+.[0-9]+' # Trigger on tags like v1.0.0, v0.1.2
-  #     - 'v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+' # Optional: for release candidates (e.g., v1.0.0-rc1)
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+' # Trigger on tags like v1.0.0, v0.1.2
+      - 'v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+' # Optional: for release candidates (e.g., v1.0.0-rc1)
 
 jobs:
   build_for_release:
@@ -64,7 +64,7 @@ jobs:
           go-version: '1.24' # Use the Go version you're developing with
 
       - name: Make build-pifigo.sh executable
-        run: chmod +x build-pifigo.sh # Ensure your local build script is executable
+        run: chmod +x build-pifigo-github.sh # Ensure your local build script is executable
 
       - name: Build pifigo for ${{ matrix.go_arch }}/${{ matrix.go_arm }}
         run: |
@@ -78,7 +78,8 @@ jobs:
           export GOARCH=${{ matrix.go_arch }}
           
           # Execute your local build-pifigo.sh script
-          ./build-pifigo.sh
+          ./build-pifigo-github.sh "${{ matrix.archive_suffix }}" "${{ matrix.go_arm }}" "${{ matrix.go_arch }}"
+          # example: build_target "_linux_armv6" "6" "arm"
         working-directory: . # Run build-pifigo.sh from the project root
 
       - name: Get release version from tag
