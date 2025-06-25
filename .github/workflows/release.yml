@@ -66,29 +66,45 @@ jobs:
 
       - name: Build pifigo for ${{ matrix.go_arch }}/${{ matrix.go_arm }}
         run: |
+          # --- ANSI Color Codes ---
+          RED='\033[0;31m'
+          GREEN='\033[0;32m'
+          YELLOW='\033[0;33m'
+          BLUE='\033[0;34m'
+          MAGENTA='\033[0;35m'
+          CYAN='\033[0;36m'
+          NC='\033[0m' # No Color (resets to default)
+
+          # VARIABLES 
           APP_NAME="pifigo"
-          VERSION_CLEAN="${{ env.RELEASE_VERSION }}" # Get version from previous step
-          ARCHIVE_SUFFIX="${{ matrix.archive_suffix }}"
+          SOURCE_PATH="./cmd/${APP_NAME}/" # Path to the main package within this repo
           OUTPUT_DIR="releases"
+          
+          VERSION_CLEAN="${{ env.RELEASE_VERSION }}" # Get version from previous step
+
+          ARCHIVE_SUFFIX="${{ matrix.archive_suffix }}"
+
+          # set env for go build command
+          export GOOS=linux
+
 
           # Pass GOARM only if it's set in the matrix
           if [ -n "${{ matrix.go_arm }}" ]; then
             export GOARM=${{ matrix.go_arm }}
           fi
-          export GOOS=linux
-          export GOARCH=${{ matrix.go_arch }}
 
-          OUTPUT_NAME="${APP_NAME}_${VERSION_CLEAN}${arch_suffix}"
-          OUTPUT_PATH="${OUTPUT_DIR}/${OUTPUT_NAME}" # NEW: Full path to output binary
+          OUTPUT_NAME="${APP_NAME}_${VERSION_CLEAN}${ARCH_SUFFIX}"
+          OUTPUT_PATH="${OUTPUT_DIR}/${OUTPUT_NAME}"
     
           echo -e "${CYAN}  Building for linux/${goarch_val}/${goarm_val} -> ${OUTPUT_PATH}...${NC}"
 
-          if [ -z "$goarm_val" ]; then # For arm64, GOARM is not set
-              GOOS=linux GOARCH="$goarch_val" CGO_ENABLED=0 go build -o "$OUTPUT_PATH" "$SOURCE_PATH"
+          if [ -z "${{ matrix.go_arm }}" ]; then ## For arm64, GOARM is not set
+              GOOS=linux GOARCH="${{ matrix.go_arch }}" CGO_ENABLED=0 go build -o "$OUTPUT_PATH" "$SOURCE_PATH"
           else
-              GOOS=linux GOARCH="$goarch_val" GOARM="$goarm_val" CGO_ENABLED=0 go build -o "$OUTPUT_PATH" "$SOURCE_PATH"
+              GOOS=linux GOARCH="${{ matrix.go_arm }}" GOARM="${{ matrix.go_arm }}" CGO_ENABLED=0 go build -o "$OUTPUT_PATH" "$SOURCE_PATH"
           fi
           echo -e "${GREEN}    Output: ${OUTPUT_PATH}${NC}"
+
         working-directory: . 
 
       - name: Get release version from tag
