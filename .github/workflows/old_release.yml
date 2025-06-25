@@ -1,5 +1,4 @@
-name: pifigo BUILD v0.2
-
+name: OLD pifigo BUILD v0.2
 on:
   workflow_dispatch:
     inputs:
