@@ -1,21 +1,20 @@
-name: pifigo BUILDER v0.3 # Workflow name - consider a more descriptive name if this is the release workflow
-
+name: pifigo BUILDER v0.3 
 on:
   workflow_dispatch:
     inputs:
       # Renamed 'tags' to 'release_version' for clarity and consistency with use
-      release_version: # This input will be used as the version for manual runs.
+      release_version:
         description: 'Version (e.g., v1.0.0 or v0.0.1-manual). Used for manual runs.'
         required: true
         type: string
   push:
     tags:
       # Standard semantic versioning tags
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0.9]+'
       - 'v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+'
       - 'v[0-9]+.[0-9]+.[0-9]+-beta[0-9]+'
       # Optional dev/test tags (won't trigger official GitHub Releases)
-      - 'v[0-9]+.[0-9]+.[0-9]+-test[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0.9]+-test[0-9]+'
       - 'v[0-9]+.[0-9]+.[0-9]+-manual[0-9]+'
 
 jobs:
@@ -25,32 +24,43 @@ jobs:
     runs-on: ubuntu-latest # Using GitHub-hosted runner
 
     strategy:
+      # --- CORRECTED: Add 'matrix:' key ---
       matrix:
-        # Define the target architectures and OS versions for cross-compilation
-          include:
-          # Linux ARMv6 (e.g., Raspberry Pi 1, Pi Zero W)
+        # Optional: To run matrix jobs serially if needed (usually parallel is faster)
+        # Uncomment the line below to enforce serial execution of matrix jobs.
+        # max-parallel: 1
+        include:
+          # --- CORRECTED: Proper YAML formatting for include list items ---
+          # Define the target architectures and OS versions for cross-compilation
+          # 'go_arm' is empty for ARM64 builds
+          # 'asset_name' is for the final archive name (e.g., pifigo-1.0.0_linux_armv6.tar.gz)
           - os: ubuntu-latest
             go_arch: arm
             go_arm: 6
             archive_suffix: _linux_armv6
             asset_name: pifigo_linux_armv6
-
-          # Linux ARMv7 (e.g., Raspberry Pi 2/3/4, Pi Zero 2 W with 32-bit OS)
           - os: ubuntu-latest
             go_arch: arm
             go_arm: 7
             archive_suffix: _linux_armv7
             asset_name: pifigo_linux_armv7
-
-          # Linux ARM64 (e.g., Raspberry Pi 3/4, Pi Zero 2 W with 64-bit OS)
           - os: ubuntu-latest
             go_arch: arm64
-            go_arm: "" # GOARM is not used for arm64
+            go_arm: "" 
             archive_suffix: _linux_arm64
             asset_name: pifigo_linux_arm64
+          
           # Optional: Add other targets if desired
-          # - os: ubuntu-latest; go_arch: amd64;   go_arm: ""; archive_suffix: _linux_amd64;  asset_name: pifigo_linux_amd64
-          # - os: macos-latest; go_arch: arm64;   go_arm: ""; archive_suffix: _darwin_arm64; asset_name: pifigo_darwin_arm64
+          # - os: ubuntu-latest
+          #   go_arch: amd64
+          #   go_arm: ""
+          #   archive_suffix: _linux_amd64
+          #   asset_name: pifigo_linux_amd64
+          # - os: macos-latest
+          #   go_arch: arm64
+          #   go_arm: ""
+          #   archive_suffix: _darwin_arm64
+          #   asset_name: pifigo_darwin_arm64
 
     steps:
       - name: Checkout code
@@ -62,10 +72,6 @@ jobs:
         with:
           go-version: '1.24' # Ensure this matches your project's go.mod
         timeout-minutes: 2
-
-      - name: Make build.sh executable
-        run: chmod +x build.sh
-        timeout-minutes: 1
 
       # --- CONSOLIDATED & ROBUST VERSION RETRIEVAL STEP ---
       - name: Get Release Version & Tag (Robust)
@@ -95,7 +101,7 @@ jobs:
             
           else
             # Fallback for other non-release triggers (e.g., push to main branch)
-            echo "RELEASE_VERSION=dev-build-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+            echo "RELEASE_VERSION=dev-build-${GITHUB_SHA::7}" >> "$GITHUB_ENV" # Use short commit SHA
             echo "RELEASE_TAG=dev-build-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
             echo "IS_RELEASE_TAG=false" >> "$GITHUB_ENV"
             echo "PRERELEASE_FLAG=false" >> "$GITHUB_ENV"
@@ -106,30 +112,43 @@ jobs:
           echo "DEBUG: PRERELEASE_FLAG: ${{ env.PRERELEASE_FLAG }}"
         timeout-minutes: 1
 
-      # --- CORRECTED BUILD STEP ---
-      - name: Build pifigo for ${{ matrix.go_arch }}/${{ matrix.go_arm }}
+      # --- COMPILATION STEP ---
+      - name: Compile pifigo for ${{ matrix.go_arch }}/${{ matrix.go_arm }}
         run: |
-          set -x # Debug shell execution in this step
+          set -x # Debug shell execution
           
-          # These environment variables tell build.sh which target to build for.
-          # build.sh will read VERSION_CLEAN from its own environment.
+          APP_NAME="pifigo"
+          SOURCE_PATH="./cmd/${APP_NAME}/"
+          OUTPUT_DIR="releases" 
+
+          mkdir -p "$OUTPUT_DIR" # Ensure output directory exists
+
+          # Determine the specific binary name to output
+          # e.g., pifigo_1.0.0_linux_armv6
+          BINARY_FILENAME="${APP_NAME}_${{ env.RELEASE_VERSION }}${{ matrix.archive_suffix }}" 
+          OUTPUT_BINARY_PATH="${OUTPUT_DIR}/${BINARY_FILENAME}"
+
+          # Set environment variables for cross-compilation
           export GOOS=linux
           export GOARCH=${{ matrix.go_arch }}
           
           if [ -n "${{ matrix.go_arm }}" ]; then 
             export GOARM=${{ matrix.go_arm }}
           else
-            export GOARM="" # Explicitly set to empty for arm64 if not provided by matrix
+            export GOARM="" # Explicitly set to empty for arm64
           fi
 
-          echo "DEBUG: Running build.sh with GOOS=$GOOS GOARCH=$GOARCH GOARM=$GOARM VERSION_CLEAN=${{ env.RELEASE_VERSION }}"
-          ./build.sh
-        env: # Pass RELEASE_VERSION to build.sh via environment
-          VERSION_CLEAN: ${{ env.RELEASE_VERSION }} 
+          echo "DEBUG: Compiling with GOOS=$GOOS GOARCH=$GOARCH GOARM=$GOARM VERSION_CLEAN=${{ env.RELEASE_VERSION }}"
+          echo "DEBUG: Output path: $OUTPUT_BINARY_PATH"
+          echo "DEBUG: Source path: $SOURCE_PATH"
+
+          # Execute the Go build command directly
+          CGO_ENABLED=0 go build -o "$OUTPUT_BINARY_PATH" "$SOURCE_PATH"
+          echo "DEBUG: Compilation complete."
         working-directory: . 
         timeout-minutes: 5 
 
-      # --- CORRECTED PREPARE RELEASE ARTIFACT STEP ---
+      # --- PREPARE RELEASE ARTIFACT STEP ---
       - name: Prepare Release Artifact
         run: |
           set -x # Debug shell execution in this step
@@ -137,7 +156,7 @@ jobs:
           APP_NAME="pifigo"
           VERSION_CLEAN="${{ env.RELEASE_VERSION }}" 
           ARCHIVE_SUFFIX="${{ matrix.archive_suffix }}"
-          OUTPUT_DIR="releases" # Where build.sh puts the binaries
+          OUTPUT_DIR="releases" # Where the previous step put the binary
 
           BINARY_FILENAME="${APP_NAME}_${VERSION_CLEAN}${ARCHIVE_SUFFIX}" 
           SOURCE_BINARY_FULL_PATH="./${OUTPUT_DIR}/${BINARY_FILENAME}"
@@ -148,21 +167,22 @@ jobs:
           # The final name of the tar.gz file
           ARCHIVE_NAME="${STAGING_DIR_IN_TAR}.tar.gz" 
           
-          echo "DEBUG: Binary filename generated by build.sh: $BINARY_FILENAME"
+          echo "DEBUG: Binary filename generated by build step: $BINARY_FILENAME"
           echo "DEBUG: Full source path of binary to package: $SOURCE_BINARY_FULL_PATH"
           echo "DEBUG: Staging directory for tarball: ./${OUTPUT_DIR}/${STAGING_DIR_IN_TAR}/"
           echo "DEBUG: Final archive name: ${OUTPUT_DIR}/${ARCHIVE_NAME}"
+
+          # Check if the source binary exists (crucial for robustness)
+          if [ ! -f "$SOURCE_BINARY_FULL_PATH" ]; then
+            echo "ERROR: Source binary not found for packaging: $SOURCE_BINARY_FULL_PATH"
+            exit 1 # Fail the job explicitly if binary not found
+          fi
 
           # 1. Create the temporary staging directory for the artifact (inside 'releases/')
           mkdir -p "./${OUTPUT_DIR}/${STAGING_DIR_IN_TAR}/"
           echo "DEBUG: Created staging directory: ./${OUTPUT_DIR}/${STAGING_DIR_IN_TAR}/"
 
           # 2. Move the compiled binary into the staging directory, renaming it to just 'pifigo'
-          # Check if the source binary exists before moving (crucial for robustness)
-          if [ ! -f "$SOURCE_BINARY_FULL_PATH" ]; then
-            echo "ERROR: Source binary not found for packaging: $SOURCE_BINARY_FULL_PATH"
-            exit 1 # Fail the job explicitly if binary not found
-          fi
           mv "$SOURCE_BINARY_FULL_PATH" "./${OUTPUT_DIR}/${STAGING_DIR_IN_TAR}/${APP_NAME}"
           echo "DEBUG: Moved binary '${SOURCE_BINARY_FULL_PATH}' into staging as '${APP_NAME}'."
 
@@ -190,7 +210,7 @@ jobs:
           files: ${{ env.ASSET_PATH }} # Path to the generated tar.gz artifact
           name: Release ${{ env.RELEASE_VERSION }} # Name of the GitHub Release
           tag_name: ${{ env.RELEASE_TAG }} # The git tag (e.g., v1.0.0)
-          prerelease: ${{ contains(github.ref, '-rc') || contains(github.ref, '-beta') || (github.event_name == 'workflow_dispatch' && (contains(github.event.inputs.version_tag, '-rc') || contains(github.event.inputs.version_tag, '-beta'))) }}
+          prerelease: ${{ env.PRERELEASE_FLAG == 'true' }} # Set to true based on calculated flag
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 2
