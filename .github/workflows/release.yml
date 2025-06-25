@@ -1,146 +1,182 @@
-name: pifigo BUILD v0.2
+name: pifigo BUILDER v0.3 
 
 on:
   workflow_dispatch:
     inputs:
-      tags:
-        description: 'Specify the tag to trigger the workflow against'
+      release_version: # This input will be used as the version for manual runs.
+        description: 'Version (e.g., v1.0.0 or v0.0.1-manual). Used for manual runs.'
         required: true
         type: string
-  # push:
-  #   tags:
-  #     - 'v[0-9]+.[0-9]+.[0-9]+' # Trigger on tags like v1.0.0, v0.1.2
-  #     - 'v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+' # Optional: for release candidates (e.g., v1.0.0-rc1)
-  #     - 'v[0-9]+.[0-9]+.[0-9]+-test[0-9]+' # Optional: for test (e.g., v1.0.0-test1)
-  #     - 'v[0-9]+.[0-9]+.[0-9]+-manual[0-9]+' # Optional: for manual (e.g., v1.0.0-test1)
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+' # Trigger on semantic version tags (e.g., v1.0.0)
+      - 'v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+' # Optional: for release candidates
+      - 'v[0-9]+.[0-9]+.[0-9]+-beta[0-9]+' # Optional: for beta releases
+      # Consider if you want 'test' or 'manual' tags to trigger official GitHub Releases.
+      # They typically don't, but are useful for CI/CD runs (which is fine here).
+      - 'v[0-9]+.[0-9]+.[0-9]+-test[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-manual[0-9]+'
 
 jobs:
   build_for_release:
-    name: Build & Upload for ${{ matrix.os }}/${{ matrix.arch }}
-    runs-on: ${{ matrix.os }}
+    name: Build & Upload for ${{ matrix.os }}/${{ matrix.go_arch }}
+    runs-on: ubuntu-latest # Using GitHub-hosted runner
 
     strategy:
-      matrix:
+      # Optional: To run matrix jobs serially if needed (usually parallel is faster)
+      # If you uncomment this, matrix jobs will run one after another, not simultaneously.
+      # max-parallel: 1
+      include:
         # Define the target architectures and OS versions for cross-compilation
-        include:
-          # Linux ARMv6 (e.g., Raspberry Pi 1, Pi Zero W)
-          - os: ubuntu-latest
-            go_arch: arm
-            go_arm: 6
-            archive_suffix: _linux_armv6
-            asset_name: pifigo_linux_armv6
-
-          # Linux ARMv7 (e.g., Raspberry Pi 2/3/4, Pi Zero 2 W with 32-bit OS)
-          - os: ubuntu-latest
-            go_arch: arm
-            go_arm: 7
-            archive_suffix: _linux_armv7
-            asset_name: pifigo_linux_armv7
-
-          # Linux ARM64 (e.g., Raspberry Pi 3/4, Pi Zero 2 W with 64-bit OS)
-          - os: ubuntu-latest
-            go_arch: arm64
-            go_arm: "" # GOARM is not used for arm64
-            archive_suffix: _linux_arm64
-            asset_name: pifigo_linux_arm64
+        # 'go_arm' is empty for ARM64 builds
+        # 'asset_name' is for the final archive name (e.g., pifigo-1.0.0_linux_armv6.tar.gz)
+          - os: ubuntu-latest; go_arch: arm;    go_arm: 6; archive_suffix: _linux_armv6;   asset_name: pifigo_linux_armv6
+          - os: ubuntu-latest; go_arch: arm;    go_arm: 7; archive_suffix: _linux_armv7;   asset_name: pifigo_linux_armv7
+          - os: ubuntu-latest; go_arch: arm64;   go_arm: ""; archive_suffix: _linux_arm64;  asset_name: pifigo_linux_arm64
           
-          # Optional: Add other targets if desired (e.g., your dev machine for testing artifact generation)
-          # - os: ubuntu-latest
-          #   go_arch: amd64
-          #   go_arm: ""
-          #   archive_suffix: _linux_amd64
-          #   asset_name: pifigo_linux_amd64
-          # - os: macos-latest
-          #   go_arch: arm64 # Or amd64 for Intel Macs
-          #   go_arm: ""
-          #   archive_suffix: _darwin_arm64
-          #   asset_name: pifigo_darwin_arm64
+          # Optional: Add other targets if desired
+          # - os: ubuntu-latest; go_arch: amd64;   go_arm: ""; archive_suffix: _linux_amd64;  asset_name: pifigo_linux_amd64
+          # - os: macos-latest; go_arch: arm64;   go_arm: ""; archive_suffix: _darwin_arm64; asset_name: pifigo_darwin_arm64
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # Action to checkout your repository
+        uses: actions/checkout@v4
+        timeout-minutes: 2
 
       - name: Set up Go
-        uses: actions/setup-go@v5 # Action to set up Go environment
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.24' # Use the Go version you're developing with
+          go-version: '1.24' # Ensure this matches your project's go.mod
+        timeout-minutes: 2
 
+      - name: Make build.sh executable
+        run: chmod +x build.sh
+        timeout-minutes: 1
+
+      # --- VERSION RETRIEVAL STEP ---
+      - name: Get Release Version & Tag (Robust)
+        id: get_version_info
+        run: |
+          set -x # Debug shell execution
+
+          # Determine RELEASE_VERSION and RELEASE_TAG based on trigger event
+          # RELEASE_VERSION is the clean version string (e.g., "1.0.0", "0.0.1-manual")
+          # RELEASE_TAG is the full Git ref or input for softprops/action-gh-release (e.g., "refs/tags/v1.0.0", "v0.0.1-manual")
+
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/tags/v* ]]; then
+            # Triggered by a tag push (e.g., v1.0.0, v1.0.0-rc1)
+            # GITHUB_REF is "refs/tags/v1.0.0". Extract "1.0.0"
+            echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_ENV"
+            echo "RELEASE_TAG=${GITHUB_REF}" >> "$GITHUB_ENV" # Store full ref for action-gh-release
+            echo "IS_RELEASE_TAG=true" >> "$GITHUB_ENV" # Flag for upload condition
+            echo "PRERELEASE_FLAG=${{ contains(github.ref, '-rc') || contains(github.ref, '-beta') }}" >> "$GITHUB_ENV"
+
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            # Triggered manually via workflow_dispatch
+            # Input 'release_version' directly provides the desired version (e.g., "v0.0.1-manual" or "v1.0.0")
+            echo "RELEASE_VERSION=${{ github.event.inputs.release_version }}" >> "$GITHUB_ENV"
+            echo "RELEASE_TAG=${{ github.event.inputs.release_version }}" >> "$GITHUB_ENV" # Use input directly as tag_name for release
+            echo "IS_RELEASE_TAG=${{ startsWith(github.event.inputs.release_version, 'v') }}" >> "$GITHUB_ENV" # True if input starts with 'v'
+            echo "PRERELEASE_FLAG=${{ contains(github.event.inputs.release_version, '-rc') || contains(github.event.inputs.release_version, '-beta') }}" >> "$GITHUB_ENV"
+            
+          else
+            # Fallback for other non-release triggers (e.g., push to main branch)
+            echo "RELEASE_VERSION=dev-build-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+            echo "RELEASE_TAG=dev-build-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+            echo "IS_RELEASE_TAG=false" >> "$GITHUB_ENV"
+            echo "PRERELEASE_FLAG=false" >> "$GITHUB_ENV"
+          fi
+          echo "DEBUG: Determined RELEASE_VERSION: ${{ env.RELEASE_VERSION }}"
+          echo "DEBUG: Determined RELEASE_TAG: ${{ env.RELEASE_TAG }}"
+          echo "DEBUG: IS_RELEASE_TAG: ${{ env.IS_RELEASE_TAG }}"
+          echo "DEBUG: PRERELEASE_FLAG: ${{ env.PRERELEASE_FLAG }}"
+        timeout-minutes: 1
+
+      # --- BUILD ---
       - name: Build pifigo for ${{ matrix.go_arch }}/${{ matrix.go_arm }}
         run: |
-          # --- ANSI Color Codes ---
-          RED='\033[0;31m'
-          GREEN='\033[0;32m'
-          YELLOW='\033[0;33m'
-          BLUE='\033[0;34m'
-          MAGENTA='\033[0;35m'
-          CYAN='\033[0;36m'
-          NC='\033[0m' # No Color (resets to default)
-
-          # VARIABLES 
-          APP_NAME="pifigo"
-          SOURCE_PATH="./cmd/${APP_NAME}/" # Path to the main package within this repo
-          OUTPUT_DIR="releases"
+          set -x # Debug shell execution in this step
           
-          VERSION_CLEAN="${{ env.RELEASE_VERSION }}" # Get version from previous step
-
-          ARCHIVE_SUFFIX="${{ matrix.archive_suffix }}"
-
-          # set env for go build command
+          # These environment variables tell build.sh which target to build for.
+          # build.sh will read VERSION_CLEAN from its own environment.
           export GOOS=linux
-
-
-          # Pass GOARM only if it's set in the matrix
-          if [ -n "${{ matrix.go_arm }}" ]; then
+          export GOARCH=${{ matrix.go_arch }}
+          
+          if [ -n "${{ matrix.go_arm }}" ]; then 
             export GOARM=${{ matrix.go_arm }}
-          fi
-
-          OUTPUT_NAME="${APP_NAME}_${VERSION_CLEAN}${ARCHIVE_SUFFIX}"
-          OUTPUT_PATH="${OUTPUT_DIR}/${OUTPUT_NAME}"
-    
-          echo -e "${CYAN}  Building for linux/${goarch_val}/${goarm_val} -> ${OUTPUT_PATH}...${NC}"
-
-          if [ -z "${{ matrix.go_arm }}" ]; then ## For arm64, GOARM is not set
-              GOOS=linux GOARCH="${{ matrix.go_arch }}" CGO_ENABLED=0 go build -o "$OUTPUT_PATH" "$SOURCE_PATH"
           else
-              GOOS=linux GOARCH="${{ matrix.go_arch }}" GOARM="${{ matrix.go_arm }}" CGO_ENABLED=0 go build -o "$OUTPUT_PATH" "$SOURCE_PATH"
+            export GOARM="" # Explicitly set to empty for arm64 if not provided by matrix
           fi
-          echo -e "${GREEN}    Output: ${OUTPUT_PATH}${NC}"
 
+          echo "DEBUG: Running build.sh with GOOS=$GOOS GOARCH=$GOARCH GOARM=$GOARM VERSION_CLEAN=${{ env.RELEASE_VERSION }}"
+          ./build.sh
+        env: # Pass RELEASE_VERSION to build.sh via environment
+          VERSION_CLEAN: ${{ env.RELEASE_VERSION }} 
         working-directory: . 
+        timeout-minutes: 5 
 
-      - name: Get release version from tag
-        id: get_version
-        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_ENV"
-        # Example: if tag is v1.0.0, RELEASE_VERSION will be 1.0.0
-
+      # --- PREPARE RELEASE ARTIFACT STEP ---
       - name: Prepare Release Artifact
         run: |
+          set -x # Debug shell execution in this step
+
           APP_NAME="pifigo"
-          VERSION_CLEAN="${{ env.RELEASE_VERSION }}" # Get version from previous step
+          VERSION_CLEAN="${{ env.RELEASE_VERSION }}" 
           ARCHIVE_SUFFIX="${{ matrix.archive_suffix }}"
-          OUTPUT_DIR="releases"
+          OUTPUT_DIR="releases" # Where build.sh puts the binaries
 
-          BINARY_FILENAME="${APP_NAME}_${VERSION_CLEAN}${ARCHIVE_SUFFIX}"
-          ARCHIVE_NAME="${APP_NAME}-${VERSION_CLEAN}${ARCHIVE_SUFFIX}.tar.gz"
+          BINARY_FILENAME="${APP_NAME}_${VERSION_CLEAN}${ARCHIVE_SUFFIX}" 
+          SOURCE_BINARY_FULL_PATH="./${OUTPUT_DIR}/${BINARY_FILENAME}"
+
+          # The name of the directory that will go inside the tar.gz (e.g., pifigo-1.0.0_linux_armv6/)
+          STAGING_DIR_IN_TAR="${APP_NAME}-${VERSION_CLEAN}${ARCHIVE_SUFFIX}" 
+
+          # The final name of the tar.gz file
+          ARCHIVE_NAME="${STAGING_DIR_IN_TAR}.tar.gz" 
           
-          # Create a clean directory for the artifact (optional, but good practice)
-          mkdir -p "./${OUTPUT_DIR}/${ARCHIVE_NAME%.tar.gz}/"
-          mv "./${OUTPUT_DIR}/${BINARY_FILENAME}" "./${OUTPUT_DIR}/${ARCHIVE_NAME%.tar.gz}/${APP_NAME}" # Rename to 'pifigo' for consistency inside the tarball
+          echo "DEBUG: Binary filename generated by build.sh: $BINARY_FILENAME"
+          echo "DEBUG: Full source path of binary to package: $SOURCE_BINARY_FULL_PATH"
+          echo "DEBUG: Staging directory for tarball: ./${OUTPUT_DIR}/${STAGING_DIR_IN_TAR}/"
+          echo "DEBUG: Final archive name: ${OUTPUT_DIR}/${ARCHIVE_NAME}"
 
-          # Create the tar.gz archive
-          tar -czvf "./${OUTPUT_DIR}/${ARCHIVE_NAME}" -C "./${OUTPUT_DIR}" "${ARCHIVE_NAME%.tar.gz}"
+          # 1. Create the temporary staging directory for the artifact (inside 'releases/')
+          mkdir -p "./${OUTPUT_DIR}/${STAGING_DIR_IN_TAR}/"
+          echo "DEBUG: Created staging directory: ./${OUTPUT_DIR}/${STAGING_DIR_IN_TAR}/"
 
+          # 2. Move the compiled binary into the staging directory, renaming it to just 'pifigo'
+          # Check if the source binary exists before moving (crucial for robustness)
+          if [ ! -f "$SOURCE_BINARY_FULL_PATH" ]; then
+            echo "ERROR: Source binary not found for packaging: $SOURCE_BINARY_FULL_PATH"
+            exit 1 # Fail the job explicitly if binary not found
+          fi
+          mv "$SOURCE_BINARY_FULL_PATH" "./${OUTPUT_DIR}/${STAGING_DIR_IN_TAR}/${APP_NAME}"
+          echo "DEBUG: Moved binary '${SOURCE_BINARY_FULL_PATH}' into staging as '${APP_NAME}'."
+
+          # 3. Create the tar.gz archive
+          # -C "./${OUTPUT_DIR}" means 'change directory to releases/ before archiving'
+          # "${STAGING_DIR_IN_TAR}" is the item to archive from within 'releases/'
+          tar -czvf "./${OUTPUT_DIR}/${ARCHIVE_NAME}" -C "./${OUTPUT_DIR}" "${STAGING_DIR_IN_TAR}"
+          echo "DEBUG: Created tar.gz archive: ${ARCHIVE_NAME}."
+
+          # 4. Clean up the temporary staging directory (optional, but good practice)
+          rm -rf "./${OUTPUT_DIR}/${STAGING_DIR_IN_TAR}"
+          echo "DEBUG: Cleaned up temporary staging directory."
+
+          # Set output variables for the next step (Upload Release Asset)
           echo "ASSET_PATH=./${OUTPUT_DIR}/${ARCHIVE_NAME}" >> "$GITHUB_ENV"
           echo "ASSET_NAME=${ARCHIVE_NAME}" >> "$GITHUB_ENV"
-        working-directory: . # Run this step from the project root
+        working-directory: . 
+        timeout-minutes: 2
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2 # Action to create/update GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v') # Only run if triggered by a version tag push
+        # Condition to upload: Only if IS_RELEASE_TAG is true
+        if: ${{ env.IS_RELEASE_TAG == 'true' }} 
         with:
           files: ${{ env.ASSET_PATH }} # Path to the generated tar.gz artifact
           name: Release ${{ env.RELEASE_VERSION }} # Name of the GitHub Release
-          tag_name: ${{ github.ref }} # The git tag (e.g., v1.0.0)
-          prerelease: ${{ contains(github.ref, '-rc') || contains(github.ref, '-beta') }} # Set to true if tag contains -rc or -beta
+          tag_name: ${{ env.RELEASE_TAG }} # The git tag (e.g., v1.0.0)
+          prerelease: ${{ env.PRERELEASE_FLAG == 'true' }} # Set to true based on calculated flag
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub's auto-generated token for actions
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 2
