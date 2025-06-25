@@ -7,15 +7,15 @@ on:
         description: 'Version (e.g., v1.0.0 or v0.0.1-manual). Used for manual runs.'
         required: true
         type: string
-  push:
-    tags:
-      # Standard semantic versioning tags
-      - 'v[0-9]+.[0-9]+.[0.9]+'
-      - 'v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+'
-      - 'v[0-9]+.[0-9]+.[0-9]+-beta[0-9]+'
-      # Optional dev/test tags (won't trigger official GitHub Releases)
-      - 'v[0-9]+.[0-9]+.[0.9]+-test[0-9]+'
-      - 'v[0-9]+.[0-9]+.[0-9]+-manual[0-9]+'
+    push:
+      tags:
+        # Standard semantic versioning tags
+        - 'v[0-9]+.[0-9]+.[0.9]+'
+        - 'v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+'
+        - 'v[0-9]+.[0-9]+.[0-9]+-beta[0-9]+'
+        # Optional dev/test tags (won't trigger official GitHub Releases)
+        - 'v[0-9]+.[0-9]+.[0.9]+-test[0-9]+'
+        - 'v[0-9]+.[0-9]+.[0-9]+-manual[0-9]+'
 
 jobs:
   build_for_release:
