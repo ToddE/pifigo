@@ -2,29 +2,32 @@
 
 ![pifigo Logo Placeholder](cmd/pifigo/assets/logo.png) **pifigo** is a lightweight, Go-powered application designed to simplify the initial Wi-Fi configuration of headless Linux-based embedded devices (like Raspberry Pi, Orange Pi, or other single-board computers) via a web browser. It sets up a temporary Access Point (AP) and a captive portal, allowing users to connect their device to their home Wi-Fi network easily, without needing a monitor, keyboard, or mouse.
 
+# THIS IS A WORK IN PROGRESS
+
 ## Table of Contents
-- [pifigo - Headless Wi-Fi Setup for Embedded Linux Devices](#pifigo---headless-wi-fi-setup-for-embedded-linux-devices)
-- [Table of Contents](#table-of-contents)
-- [1. Features](#1-features)
-- [2. Why pifigo?](#2-why-pifigo)
-- [3. Requirements](#3-requirements)
-- [4. Installation](#4-installation)
-  - [Step 1: Prepare Your Device OS](#step-1-prepare-your-device-os)
-  - [Step 2: Obtain pifigo Binaries \& Installer (this section being revised/updated)](#step-2-obtain-pifigo-binaries--installer-this-section-being-revisedupdated)
-  - [Step 3: Run the Installer Script](#step-3-run-the-installer-script)
-- [5. Initial Setup Flow (User Guide)](#5-initial-setup-flow-user-guide)
-- [6. Configuration](#6-configuration)
-  - [Main Config (`config.toml`)](#main-config-configtoml)
-  - [Localization (`lang/`)](#localization-lang)
-  - [Custom Assets (`assets/`)](#custom-assets-assets)
-- [7. Management](#7-management)
-  - [pifigo Service Control](#pifigo-service-control)
-  - [Forcing AP Mode / Resetting Wi-Fi](#forcing-ap-mode--resetting-wi-fi)
-  - [Updating pifigo](#updating-pifigo)
-  - [Uninstalling pifigo](#uninstalling-pifigo)
-- [8. Troubleshooting](#8-troubleshooting)
-- [9. Contributing](#9-contributing)
-- [10. License](#10-license)
+
+- [THIS IS A WORK IN PROGRESS](#this-is-a-work-in-progress)
+  - [Table of Contents](#table-of-contents)
+  - [1. Features](#1-features)
+  - [2. Why pifigo?](#2-why-pifigo)
+  - [3. Requirements](#3-requirements)
+  - [4. Installation](#4-installation)
+    - [Step 1: Prepare Your Device OS](#step-1-prepare-your-device-os)
+    - [Step 2: Obtain pifigo Binaries \& Installer (this section being revised/updated)](#step-2-obtain-pifigo-binaries--installer-this-section-being-revisedupdated)
+    - [Step 3: Run the Installer Script](#step-3-run-the-installer-script)
+  - [5. Initial Setup Flow (User Guide)](#5-initial-setup-flow-user-guide)
+  - [6. Configuration](#6-configuration)
+    - [Main Config (`config.toml`)](#main-config-configtoml)
+    - [Localization (`lang/`)](#localization-lang)
+    - [Custom Assets (`assets/`)](#custom-assets-assets)
+  - [7. Management](#7-management)
+    - [pifigo Service Control](#pifigo-service-control)
+    - [Forcing AP Mode / Resetting Wi-Fi](#forcing-ap-mode--resetting-wi-fi)
+    - [Updating pifigo](#updating-pifigo)
+    - [Uninstalling pifigo](#uninstalling-pifigo)
+  - [8. Troubleshooting](#8-troubleshooting)
+  - [9. Contributing](#9-contributing)
+  - [10. License](#10-license)
 
 ---
 
