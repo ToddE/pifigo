@@ -59,7 +59,5 @@ build_target $1 $2 $3
 
 
 
-echo -e "${BLUE}All ${APP_NAME} builds complete!${NC}"
-ls -lh "${OUTPUT_DIR}/${APP_NAME}_${VERSION_CLEAN}_linux_armv6" \
-        "${OUTPUT_DIR}/${APP_NAME}_${VERSION_CLEAN}_linux_armv7" \
-        "${OUTPUT_DIR}/${APP_NAME}_${VERSION_CLEAN}_linux_arm64"
+echo -e "${BLUE} ${OUTPUT_NAME} build complete!${NC}"
+ls -lh "${OUTPUT_DIR}/${OUTPUT_NAME}" 
