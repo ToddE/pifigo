@@ -1,4 +1,4 @@
-name: pifigo BUILDER v0.3 
+name: pifigo BUILDER v0.4b
 
 permissions:
   contents: write  # Required for pushing commits and creating releases
