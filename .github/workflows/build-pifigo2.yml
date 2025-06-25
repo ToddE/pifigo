@@ -1,0 +1,172 @@
+name: pifigo BUILDER v0.3 
+
+# Add explicit permissions for GITHUB_TOKEN
+permissions:
+  contents: write  # Required for creating releases and uploading assets
+  actions: read    # Required for accessing workflow artifacts
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: 'Version (e.g., v1.0.0 or v0.0.1-manual). Used for manual runs.'
+        required: true
+        type: string
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-beta[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-test[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-manual[0-9]+'
+
+jobs:
+  build_for_release:
+    name: Build & Upload for ${{ matrix.os }}/${{ matrix.go_arch }} 
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            go_arch: arm
+            go_arm: 6
+            archive_suffix: _linux_armv6
+            asset_name: pifigo_linux_armv6
+          - os: ubuntu-latest
+            go_arch: arm
+            go_arm: 7
+            archive_suffix: _linux_armv7
+            asset_name: pifigo_linux_armv7
+          - os: ubuntu-latest
+            go_arch: arm64
+            go_arm: "" 
+            archive_suffix: _linux_arm64
+            asset_name: pifigo_linux_arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        timeout-minutes: 2
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+        timeout-minutes: 2
+
+      - name: Get Release Version & Tag (Robust)
+        id: get_version_info
+        run: |
+          set -x
+          
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_ENV"
+            echo "RELEASE_TAG=${GITHUB_REF}" >> "$GITHUB_ENV"
+            echo "IS_RELEASE_TAG=true" >> "$GITHUB_ENV"
+            echo "PRERELEASE_FLAG=${{ contains(github.ref, '-rc') || contains(github.ref, '-beta') }}" >> "$GITHUB_ENV"
+
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "RELEASE_VERSION=${{ github.event.inputs.release_version }}" >> "$GITHUB_ENV"
+            echo "RELEASE_TAG=${{ github.event.inputs.release_version }}" >> "$GITHUB_ENV"
+            echo "IS_RELEASE_TAG=${{ startsWith(github.event.inputs.release_version, 'v') }}" >> "$GITHUB_ENV"
+            # FIXED: Changed version_tag to release_version in the prerelease check
+            echo "PRERELEASE_FLAG=${{ contains(github.event.inputs.release_version, '-rc') || contains(github.event.inputs.release_version, '-beta') }}" >> "$GITHUB_ENV"
+            
+          else
+            echo "RELEASE_VERSION=dev-build-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+            echo "RELEASE_TAG=dev-build-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+            echo "IS_RELEASE_TAG=false" >> "$GITHUB_ENV"
+            echo "PRERELEASE_FLAG=false" >> "$GITHUB_ENV"
+          fi
+          
+          echo "DEBUG: Determined RELEASE_VERSION: $RELEASE_VERSION"
+          echo "DEBUG: Determined RELEASE_TAG: $RELEASE_TAG"
+          echo "DEBUG: IS_RELEASE_TAG: $IS_RELEASE_TAG"
+          echo "DEBUG: PRERELEASE_FLAG: $PRERELEASE_FLAG"
+        timeout-minutes: 1
+
+      - name: Compile pifigo for ${{ matrix.go_arch }}/${{ matrix.go_arm }}
+        run: |
+          set -x
+          
+          APP_NAME="pifigo"
+          SOURCE_PATH="./cmd/${APP_NAME}/"
+          OUTPUT_DIR="releases" 
+
+          mkdir -p "$OUTPUT_DIR"
+
+          BINARY_FILENAME="${APP_NAME}_${{ env.RELEASE_VERSION }}${{ matrix.archive_suffix }}" 
+          OUTPUT_BINARY_PATH="${OUTPUT_DIR}/${BINARY_FILENAME}"
+
+          export GOOS=linux
+          export GOARCH=${{ matrix.go_arch }}
+          
+          if [ -n "${{ matrix.go_arm }}" ]; then 
+            export GOARM=${{ matrix.go_arm }}
+          else
+            export GOARM=""
+          fi
+
+          echo "DEBUG: Compiling with GOOS=$GOOS GOARCH=$GOARCH GOARM=$GOARM VERSION_CLEAN=${{ env.RELEASE_VERSION }}"
+          echo "DEBUG: Output path: $OUTPUT_BINARY_PATH"
+          echo "DEBUG: Source path: $SOURCE_PATH"
+
+          CGO_ENABLED=0 go build -o "$OUTPUT_BINARY_PATH" "$SOURCE_PATH"
+          echo "DEBUG: Compilation complete."
+        working-directory: . 
+        timeout-minutes: 5 
+
+      - name: Prepare Release Artifact
+        run: |
+          set -x
+
+          APP_NAME="pifigo"
+          VERSION_CLEAN="${{ env.RELEASE_VERSION }}" 
+          ARCHIVE_SUFFIX="${{ matrix.archive_suffix }}"
+          OUTPUT_DIR="releases"
+
+          BINARY_FILENAME="${APP_NAME}_${VERSION_CLEAN}${ARCHIVE_SUFFIX}" 
+          SOURCE_BINARY_FULL_PATH="./${OUTPUT_DIR}/${BINARY_FILENAME}"
+
+          STAGING_DIR_IN_TAR="${APP_NAME}-${VERSION_CLEAN}${ARCHIVE_SUFFIX}" 
+          ARCHIVE_NAME="${STAGING_DIR_IN_TAR}.tar.gz" 
+          
+          echo "DEBUG: Binary filename generated by build step: $BINARY_FILENAME"
+          echo "DEBUG: Full source path of binary to package: $SOURCE_BINARY_FULL_PATH"
+          echo "DEBUG: Staging directory for tarball: ./${OUTPUT_DIR}/${STAGING_DIR_IN_TAR}/"
+          echo "DEBUG: Final archive name: ${OUTPUT_DIR}/${ARCHIVE_NAME}"
+
+          if [ ! -f "$SOURCE_BINARY_FULL_PATH" ]; then
+            echo "ERROR: Source binary not found for packaging: $SOURCE_BINARY_FULL_PATH"
+            exit 1
+          fi
+
+          mkdir -p "./${OUTPUT_DIR}/${STAGING_DIR_IN_TAR}/"
+          echo "DEBUG: Created staging directory: ./${OUTPUT_DIR}/${STAGING_DIR_IN_TAR}/"
+
+          mv "$SOURCE_BINARY_FULL_PATH" "./${OUTPUT_DIR}/${STAGING_DIR_IN_TAR}/${APP_NAME}"
+          echo "DEBUG: Moved binary '${SOURCE_BINARY_FULL_PATH}' into staging as '${APP_NAME}'."
+
+          tar -czvf "./${OUTPUT_DIR}/${ARCHIVE_NAME}" -C "./${OUTPUT_DIR}" "${STAGING_DIR_IN_TAR}"
+          echo "DEBUG: Created tar.gz archive: ${ARCHIVE_NAME}."
+
+          rm -rf "./${OUTPUT_DIR}/${STAGING_DIR_IN_TAR}"
+          echo "DEBUG: Cleaned up temporary staging directory."
+
+          echo "ASSET_PATH=./${OUTPUT_DIR}/${ARCHIVE_NAME}" >> "$GITHUB_ENV"
+          echo "ASSET_NAME=${ARCHIVE_NAME}" >> "$GITHUB_ENV"
+        working-directory: . 
+        timeout-minutes: 2
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        if: ${{ env.IS_RELEASE_TAG == 'true' }} 
+        with:
+          files: ${{ env.ASSET_PATH }}
+          name: Release ${{ env.RELEASE_VERSION }}
+          tag_name: ${{ env.RELEASE_TAG }}
+          prerelease: ${{ env.PRERELEASE_FLAG == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 2
