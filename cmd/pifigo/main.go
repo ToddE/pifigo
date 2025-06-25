@@ -11,10 +11,10 @@ import (
 	// "strings"
 	"time"
 
-	"githib.com/ToddE/pifigo/internal/common"
-	"githib.com/ToddE/pifigo/internal/config"
-	"githib.com/ToddE/pifigo/internal/netconfig"
-	"githib.com/ToddE/pifigo/internal/ui"
+	"github.com/ToddE/pifigo/internal/common"
+	"github.com/ToddE/pifigo/internal/config"
+	"github.com/ToddE/pifigo/internal/netconfig"
+	"github.com/ToddE/pifigo/internal/ui"
 )
 
 // --- Embed the template and ALL assets folder ---
