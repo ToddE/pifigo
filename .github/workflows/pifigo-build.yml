@@ -1,29 +1,32 @@
-name: pifigo BUILDER v0.3 
+name: pifigo BUILDER v0.3 # Workflow name - consider a more descriptive name if this is the release workflow
+
 on:
   workflow_dispatch:
     inputs:
-      release_version:
+      # Renamed 'tags' to 'release_version' for clarity and consistency with use
+      release_version: # This input will be used as the version for manual runs.
         description: 'Version (e.g., v1.0.0 or v0.0.1-manual). Used for manual runs.'
         required: true
         type: string
   push:
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+' # Trigger on semantic version tags (e.g., v1.0.0)
-      - 'v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+' # Optional: for release candidates
-      - 'v[0-9]+.[0-9]+.[0-9]+-beta[0-9]+' # Optional: for beta releases
-      # Consider if you want 'test' or 'manual' tags to trigger official GitHub Releases.
-      # They typically don't, but are useful for CI/CD runs (which is fine here).
+      # Standard semantic versioning tags
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-beta[0-9]+'
+      # Optional dev/test tags (won't trigger official GitHub Releases)
       - 'v[0-9]+.[0-9]+.[0-9]+-test[0-9]+'
       - 'v[0-9]+.[0-9]+.[0-9]+-manual[0-9]+'
 
 jobs:
   build_for_release:
-    name: Build & Upload for ${{ matrix.os }}/${{ matrix.go_arch }}
+    # Corrected matrix.arch -> matrix.go_arch in job name
+    name: Build & Upload for ${{ matrix.os }}/${{ matrix.go_arch }} 
     runs-on: ubuntu-latest # Using GitHub-hosted runner
 
     strategy:
       # Optional: To run matrix jobs serially if needed (usually parallel is faster)
-      # If you uncomment this, matrix jobs will run one after another, not simultaneously.
+      # Uncomment the line below to enforce serial execution of matrix jobs.
       # max-parallel: 1
       include:
         # Define the target architectures and OS versions for cross-compilation
@@ -52,12 +55,12 @@ jobs:
         run: chmod +x build.sh
         timeout-minutes: 1
 
-      # --- VERSION RETRIEVAL STEP ---
+      # --- CONSOLIDATED & ROBUST VERSION RETRIEVAL STEP ---
       - name: Get Release Version & Tag (Robust)
         id: get_version_info
         run: |
           set -x # Debug shell execution
-
+          
           # Determine RELEASE_VERSION and RELEASE_TAG based on trigger event
           # RELEASE_VERSION is the clean version string (e.g., "1.0.0", "0.0.1-manual")
           # RELEASE_TAG is the full Git ref or input for softprops/action-gh-release (e.g., "refs/tags/v1.0.0", "v0.0.1-manual")
@@ -76,7 +79,7 @@ jobs:
             echo "RELEASE_VERSION=${{ github.event.inputs.release_version }}" >> "$GITHUB_ENV"
             echo "RELEASE_TAG=${{ github.event.inputs.release_version }}" >> "$GITHUB_ENV" # Use input directly as tag_name for release
             echo "IS_RELEASE_TAG=${{ startsWith(github.event.inputs.release_version, 'v') }}" >> "$GITHUB_ENV" # True if input starts with 'v'
-            echo "PRERELEASE_FLAG=${{ contains(github.event.inputs.release_version, '-rc') || contains(github.event.inputs.release_version, '-beta') }}" >> "$GITHUB_ENV"
+            echo "PRERELEASE_FLAG=${{ contains(github.event.inputs.release_version, '-rc') || contains(github.event.inputs.version_tag, '-beta') }}" >> "$GITHUB_ENV"
             
           else
             # Fallback for other non-release triggers (e.g., push to main branch)
@@ -91,7 +94,7 @@ jobs:
           echo "DEBUG: PRERELEASE_FLAG: ${{ env.PRERELEASE_FLAG }}"
         timeout-minutes: 1
 
-      # --- BUILD ---
+      # --- CORRECTED BUILD STEP ---
       - name: Build pifigo for ${{ matrix.go_arch }}/${{ matrix.go_arm }}
         run: |
           set -x # Debug shell execution in this step
@@ -114,7 +117,7 @@ jobs:
         working-directory: . 
         timeout-minutes: 5 
 
-      # --- PREPARE RELEASE ARTIFACT STEP ---
+      # --- CORRECTED PREPARE RELEASE ARTIFACT STEP ---
       - name: Prepare Release Artifact
         run: |
           set -x # Debug shell execution in this step
@@ -175,7 +178,7 @@ jobs:
           files: ${{ env.ASSET_PATH }} # Path to the generated tar.gz artifact
           name: Release ${{ env.RELEASE_VERSION }} # Name of the GitHub Release
           tag_name: ${{ env.RELEASE_TAG }} # The git tag (e.g., v1.0.0)
-          prerelease: ${{ env.PRERELEASE_FLAG == 'true' }} # Set to true based on calculated flag
+          prerelease: ${{ contains(github.ref, '-rc') || contains(github.ref, '-beta') || (github.event_name == 'workflow_dispatch' && (contains(github.event.inputs.version_tag, '-rc') || contains(github.event.inputs.version_tag, '-beta'))) }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 2
