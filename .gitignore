@@ -7,14 +7,14 @@
 *.prof
 
 # pifigo-specific compiled executables (from build-pifigo.sh)
-pifigo_linux_armv6
-pifigo_linux_armv7
-pifigo_linux_arm64
-pifigo_windows_amd64.exe # If we ever build for Windows
-pifigo_linux_amd64     # If we ever build for amd64 Linux
+# pifigo_linux_armv6
+# pifigo_linux_armv7
+# pifigo_linux_arm64
+# pifigo_windows_amd64.exe # If we ever build for Windows
+# pifigo_linux_amd64     # If we ever build for amd64 Linux
 
 #  Output directory for releases (contains compiled binaries)
-/releases/
+# /releases/
 
 # Go module cache and dependencies
 # The .mod and .sum files are necessary, but the downloaded code is not
