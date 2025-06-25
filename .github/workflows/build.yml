@@ -3,7 +3,6 @@ name: pifigo BUILDER v0.3
 on:
   workflow_dispatch:
     inputs:
-      # Renamed 'tags' to 'release_version' for clarity and consistency with use
       release_version: # This input will be used as the version for manual runs.
         description: 'Version (e.g., v1.0.0 or v0.0.1-manual). Used for manual runs.'
         required: true
