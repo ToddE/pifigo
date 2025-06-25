@@ -1,4 +1,4 @@
-name: pifigo BUILD (no script)
+name: pifigo BUILD v0.2
 
 on:
   workflow_dispatch:
