@@ -102,7 +102,7 @@ jobs:
           if [ -z "${{ matrix.go_arm }}" ]; then ## For arm64, GOARM is not set
               GOOS=linux GOARCH="${{ matrix.go_arch }}" CGO_ENABLED=0 go build -o "$OUTPUT_PATH" "$SOURCE_PATH"
           else
-              GOOS=linux GOARCH="${{ matrix.go_arm }}" GOARM="${{ matrix.go_arm }}" CGO_ENABLED=0 go build -o "$OUTPUT_PATH" "$SOURCE_PATH"
+              GOOS=linux GOARCH="${{ matrix.go_arch }}" GOARM="${{ matrix.go_arm }}" CGO_ENABLED=0 go build -o "$OUTPUT_PATH" "$SOURCE_PATH"
           fi
           echo -e "${GREEN}    Output: ${OUTPUT_PATH}${NC}"
 
