@@ -10,12 +10,8 @@
   - [1. Features](#1-features)
   - [2. Why pifigo?](#2-why-pifigo)
   - [3. Requirements](#3-requirements)
-  - [4. Installation](#4-installation)
-    - [Step 1: Prepare Your Device OS](#step-1-prepare-your-device-os)
-    - [Step 2: Obtain pifigo Binaries \& Installer (this section being revised/updated)](#step-2-obtain-pifigo-binaries--installer-this-section-being-revisedupdated)
-    - [Step 3: Run the Installer Script](#step-3-run-the-installer-script)
-  - [5. Initial Setup Flow (User Guide)](#5-initial-setup-flow-user-guide)
-  - [6. Configuration](#6-configuration)
+  - [4. TLDR QUICK START GUIDE](#4-tldr-quick-start-guide)
+  - [6. Configuration (`config.toml`)](#6-configuration-configtoml)
     - [Main Config (`config.toml`)](#main-config-configtoml)
     - [Localization (`lang/`)](#localization-lang)
     - [Custom Assets (`assets/`)](#custom-assets-assets)
@@ -47,19 +43,30 @@
 
 **pifigo** is designed for appliance-style devices where user interaction with the command line is undesirable. It provides a reliable and streamlined way to get your device online, acting as the crucial first step for any IoT or embedded Linux project that needs Wi-Fi connectivity and subsequent configuration.
 
+**This project is not production ready** and in the test phase. Use at your own risk. 
+
 ## 3. Requirements
 
 * **Hardware:** A Linux-based embedded device with a Wi-Fi adapter (e.g., Raspberry Pi Zero W, Raspberry Pi Zero 2 W, Raspberry Pi 3/4, Orange Pi Zero 3, etc.).
 * **Operating System:** A minimal Linux distribution (e.g., Raspberry Pi OS Lite, Armbian Minimal).
     * **:warning:** OS must have `systemd` as its init system.
     * **:warning:** Wi-Fi adapter drivers must be installed and functional.
-
-* **Go Version:** `go 1.24` or newer (for building from source, not needed on device if using pre-compiled binaries).
-* **Development Machine:** A Linux (or macOS/Windows) machine for cross-compiling the binaries if building from source.
-
 * **ALL Required Packages (will be installed by `install.sh`):** `hostapd`, `dnsmasq`, `iptables-persistent`, `avahi-daemon`, `iproute2`, `network-manager`.
 
-## 4. Installation
+## 4. TLDR QUICK START GUIDE
+**TLDR** *download and extract the package and get it on your Pi device and then run the installer as root.*
+
+1. Download and extract the [latest release](https://github.com/ToddE/pifigo/releases) on your target device (Raspberry Pi)
+2. Review the config.toml file and make any changes to the default Access Point or passwords.
+3. Run the installer with sudo privileges:
+  
+  ```bash
+  sudo ./install.sh
+  ```
+The installer will automatically detect your architecture and install the correct binary.
+
+<!-- 
+## 5. Detailed Installation Overview
 
 This guide assumes you have a freshly flashed minimal Linux OS on your device and can connect to it via SSH (e.g., via USB gadget mode or temporary Ethernet).
 
@@ -78,26 +85,12 @@ This guide assumes you have a freshly flashed minimal Linux OS on your device an
 3.  **Boot Device:** Insert the SD card into your device and power it on.
 4.  **Initial Access:** Connect to your device via SSH (e.g., using USB Gadget Mode for Pi Zeros: `ssh pi@raspberrypi.local` or `ssh pi@192.168.7.2`). If you configured Wi-Fi, you can SSH to the IP your router assigns (`ssh [username]@[hostname/ip].local` or find its IP on your router).
 
-### Step 2: Obtain pifigo Binaries & Installer (this section being revised/updated)
-
-On your **development machine** (should you choose to build on your own):
-
-1.  **Clone the pifigo repository:**
-    ```bash
-    git clone https://github.com/ToddE/pifigo.git
-    cd pifigo
-    ```
-    *(If you prefer to download a release archive, visit the [Releases page](https://github.com/ToddE/pifigo/releases) and download the appropriate release binary. Extract it and navigate into the `pifigo` directory.)*
-
-2.  **Build pifigo binaries for your target architecture(s):**
-    Run the `build.sh` script to compile `pifigo` for common Raspberry Pi variants. This script will automatically use the Git tag version (e.g., `v1.0.0`) in the binary name.
-    ```bash
-    chmod +x build.sh
-    ./build.sh
-    ```
-    This will generate binaries like `pifigo_1.0.0_linux_armv6`, `pifigo_1.0.0_linux_armv7`, `pifigo_1.0.0_linux_arm64` in your `pifigo/releases/` directory.
-
-3.  **Choose the correct binary:** Select the binary matching your device's OS type and ARM version from the `releases/` directory.
+### Step 2: Obtain pifigo Binaries & Installer 
+1. Download and extract the [latest release](https://github.com/ToddE/pifigo/releases)
+2. Extract/unzip the files on your target device. For example
+   ```bash
+   scp -r 
+3. 
 
 4.  **Transfer files to your device:**
 
@@ -142,6 +135,7 @@ On your **device's SSH terminal**:
     * Finally, trigger a reboot.
 
 ## 5. Initial Setup Flow (User Guide)
+!-->
 
 After your device reboots (wait 30-60 seconds):
 
@@ -167,7 +161,7 @@ After your device reboots (wait 30-60 seconds):
     * Your device (Pi) should now be connected to your home Wi-Fi.
     * You can then access its local services (like `randao-node-manager` if installed) by navigating your browser to `http://<your_device_hostname>.local/` (e.g., `http://pifigo.local/`).
 
-## 6. Configuration
+## 6. Configuration 
 
 **pifigo**'s behavior and appearance can be customized via its `config.toml` file and by providing custom assets.
 
