@@ -11,18 +11,19 @@
   - [2. Why pifigo?](#2-why-pifigo)
   - [3. Requirements](#3-requirements)
   - [4. TLDR QUICK START GUIDE](#4-tldr-quick-start-guide)
-  - [6. Configuration (`config.toml`)](#6-configuration-configtoml)
+    - [After your device reboots (wait 30-60 seconds)](#after-your-device-reboots-wait-30-60-seconds)
+  - [5. Configuring pifigo](#5-configuring-pifigo)
     - [Main Config (`config.toml`)](#main-config-configtoml)
     - [Localization (`lang/`)](#localization-lang)
     - [Custom Assets (`assets/`)](#custom-assets-assets)
-  - [7. Management](#7-management)
+  - [6. Management](#6-management)
     - [pifigo Service Control](#pifigo-service-control)
     - [Forcing AP Mode / Resetting Wi-Fi](#forcing-ap-mode--resetting-wi-fi)
     - [Updating pifigo](#updating-pifigo)
     - [Uninstalling pifigo](#uninstalling-pifigo)
-  - [8. Troubleshooting](#8-troubleshooting)
-  - [9. Contributing](#9-contributing)
-  - [10. License](#10-license)
+  - [7. Troubleshooting](#7-troubleshooting)
+  - [8. Contributing](#8-contributing)
+  - [9. License](#9-license)
 
 ---
 
@@ -57,7 +58,7 @@
 **TLDR** *download and extract the package and get it on your Pi device and then run the installer as root.*
 
 1. Download and extract the [latest release](https://github.com/ToddE/pifigo/releases) on your target device (Raspberry Pi)
-2. Review the config.toml file and make any changes to the default Access Point or passwords.
+2. Review the config.toml file and make any changes to the default Access Point or passwords. (see [Configuring Pifigo](#5-configuring-pifigo))
 3. Run the installer with sudo privileges:
   
   ```bash
@@ -80,7 +81,7 @@ This guide assumes you have a freshly flashed minimal Linux OS on your device an
     * **Set username and password:** e.g., `pi` and `raspberry` (or your preferred secure credentials).
     * **Configure wireless LAN:**
         * **If your device has Ethernet (e.g., Pi 3/4):** Leave this blank and *use Ethernet for initial SSH access* if you can. 
-        * **If your device is Wi-Fi-only (e.g., Pi Zero W/2W, some Orange Pis):** **You MUST configure your home Wi-Fi here** to gain initial SSH access. `pifigo` will then detect your network manager and reconfigure Wi-Fi for its setup AP after installation.
+        * **If your device is Wi-Fi-only (e.g., Pi Zero W/2W, some Orange Pis):** **You MUST configure your home Wi-Fi here** to gain initial SSH access. **pifigo** will then detect your network manager and reconfigure Wi-Fi for its setup AP after installation.
     * **Set locale settings:** Choose your correct **Wi-Fi country** (e.g., `US`, `GB`, `DE`). This is absolutely essential for Wi-Fi to function correctly and legally.
 3.  **Boot Device:** Insert the SD card into your device and power it on.
 4.  **Initial Access:** Connect to your device via SSH (e.g., using USB Gadget Mode for Pi Zeros: `ssh pi@raspberrypi.local` or `ssh pi@192.168.7.2`). If you configured Wi-Fi, you can SSH to the IP your router assigns (`ssh [username]@[hostname/ip].local` or find its IP on your router).
@@ -130,14 +131,14 @@ On your **device's SSH terminal**:
     * Update system packages and install necessary dependencies.
     * Detect and configure the primary network manager (`NetworkManager`, `dhcpcd`, or `systemd-networkd`).
     * Copy **pifigo** binary, config files, and assets to their final system locations (`/usr/local/bin/pifigo`, `/etc/pifigo/`, `/var/lib/pifigo/`).
-    * Configure `pifigo` as a `systemd` service.
+    * Configure **pifigo** as a `systemd` service.
     * Set up `sudoers` permissions.
     * Finally, trigger a reboot.
 
 ## 5. Initial Setup Flow (User Guide)
 !-->
 
-After your device reboots (wait 30-60 seconds):
+### After your device reboots (wait 30-60 seconds)
 
 1.  **Connect to pifigo's AP:**
     * On your mobile phone or PC, open your Wi-Fi settings.
@@ -161,7 +162,7 @@ After your device reboots (wait 30-60 seconds):
     * Your device (Pi) should now be connected to your home Wi-Fi.
     * You can then access its local services (like `randao-node-manager` if installed) by navigating your browser to `http://<your_device_hostname>.local/` (e.g., `http://pifigo.local/`).
 
-## 6. Configuration 
+## 5. Configuring pifigo
 
 **pifigo**'s behavior and appearance can be customized via its `config.toml` file and by providing custom assets.
 
@@ -220,9 +221,9 @@ To add a new language, create a new TOML file (e.g., `es.toml`) in `/etc/pifigo/
 
 You can override the default embedded logo (or provide your own custom CSS/JS files if you build a custom template) by placing them in `/etc/pifigo/assets/`. Ensure the `custom_image_url` (or `custom_template`) in `config.toml` points to your custom files.
 
-## 7. Management
+## 6. Management
 
-`pifigo` is managed via `systemd` commands.
+**pifigo** is managed via `systemd` commands.
 
 ### pifigo Service Control
 
@@ -268,11 +269,11 @@ If your device is stuck offline, or you want to connect it to a new Wi-Fi networ
     ```bash
     sudo reboot
     ```
-    On reboot, `pifigo` will start in AP mode again.
+    On reboot, **pifigo** will start in AP mode again.
 
 ### Updating pifigo
 
-1.  **Download/Transfer New Binary:** On your development machine, build the new `pifigo` binary for your device's architecture (e.g., `pifigo_0.0.2_linux_armv7`). Use `scp` to copy it to a temporary location on your device (e.g., `/tmp/pifigo_new`).
+1.  **Download/Transfer New Binary:** On your development machine, build the new **pifigo** binary for your device's architecture (e.g., `pifigo_0.0.2_linux_armv7`). Use `scp` to copy it to a temporary location on your device (e.g., `/tmp/pifigo_new`).
 2.  **Stop Existing Service:**
     ```bash
     sudo systemctl stop pifigo.service
@@ -289,16 +290,16 @@ If your device is stuck offline, or you want to connect it to a new Wi-Fi networ
 
 ### Uninstalling pifigo
 
-The `uninstall.sh` script (located in the `pifigo` repository) will remove all `pifigo` components and attempt to restore your system's network configuration to its state before `pifigo` was installed.
+The `uninstall.sh` script (located in the **pifigo** repository) will remove all **pifigo** components and attempt to restore your system's network configuration to its state before **pifigo** was installed.
 
-1.  **Transfer `uninstall.sh`:** Copy the `uninstall.sh` script from your development machine's `pifigo` repository to your device (e.g., `/tmp/uninstall_pifigo.sh`).
+1.  **Transfer `uninstall.sh`:** Copy the `uninstall.sh` script from your development machine's **pifigo** repository to your device (e.g., `/tmp/uninstall_pifigo.sh`).
 2.  **Run Uninstall Script:**
     ```bash
     sudo /tmp/uninstall_pifigo.sh
     ```
     The script will print its actions and reboot the device.
 
-## 8. Troubleshooting
+## 7. Troubleshooting
 
 * **AP Not Appearing (`PiFigoSetup` not visible):**
     * Ensure your device is powered on.
@@ -325,10 +326,9 @@ The `uninstall.sh` script (located in the `pifigo` repository) will remove all `
     * Confirm your client device (phone/PC) supports mDNS/Bonjour.
     * Try finding the device's IP via your router's admin page or a network scanner tool (like "Fing" mobile app) and access `http://<IP_address>/` directly.
 
-## 9. Contributing
+## 8. Contributing
+We welcome contributions to **pifigo**! Please see the [CONTRIBUTING.md](https://github.com/ToddE/pifigo/blob/main/CONTRIBUTING.md) file (if you create one) for guidelines on how to contribute.
 
-We welcome contributions to `pifigo`! Please see the `CONTRIBUTING.md` file (if you create one) for guidelines on how to contribute.
+## 9. License
 
-## 10. License
-
-This project is licensed under the MIT License - see the `LICENSE.md` file for details.
+This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/ToddE/pifigo/blob/main/LICENSE.md) file for details.

@@ -3,7 +3,6 @@
 Thank you for your interest in contributing to `pifigo`! We welcome contributions from everyone, whether it's reporting bugs, suggesting new features, improving documentation, or submitting code changes. Your help makes `pifigo` better for everyone.
 
 ## Table of Contents
-
 - [Contributing to pifigo](#contributing-to-pifigo)
   - [Table of Contents](#table-of-contents)
   - [1. Code of Conduct](#1-code-of-conduct)
