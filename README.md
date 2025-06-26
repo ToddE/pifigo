@@ -30,19 +30,26 @@
 ## 1. Features
 
 * **Headless Wi-Fi Provisioning:** Connects your device to a Wi-Fi network without requiring a display or input devices.
+  
 * **Temporary Access Point (AP):** Creates its own Wi-Fi network on first boot or fallback.
-* **Captive Portal:** Automatically redirects connected devices to the setup web interface.
-* **Universal Network Manager Support:** Automatically detects the system's active network manager (`NetworkManager`, `dhcpcd`, or `systemd-networkd`) and adapts its Wi-Fi configuration strategy accordingly.
+
+* **Captive Portal:** Automatically redirects connected devices to the setup web interface. Or connect to the device with the mDNS name (e.g., http://pifigo.local)
+
 * **Automatic Hostname Setup:** Configures mDNS (`.local`) hostname for easy access.
+
+* **"Universal" Network Manager Support:** Automatically detects the system's active network manager (`NetworkManager`, `dhcpcd`, or `systemd-networkd`) and adapts its Wi-Fi configuration strategy accordingly.
+
 * **Persistent Device ID & Claim Code:** Generates and displays unique identifiers for your device for subsequent application setup.
-* **Go-Powered Efficiency:** Built in Go for high performance and low resource usage on embedded devices.
-* **Cross-Platform Binaries:** Pre-compiled binaries available for various ARM architectures (ARMv6, ARMv7, ARM64).
-* **Robust & Recoverable:** Includes automatic fallback to AP mode if internet connection is lost.
+
+* **Cross-Platform Binaries:** Pre-compiled Go binaries available for various ARM architectures (ARMv6, ARMv7, ARM64).
+
 * **Customizable UI:** Easily change styling, text, and logos via simple TOML configuration files.
+
+* **COMING SOON: Robust & Recoverable:** Includes automatic fallback to AP mode if internet connection is lost.
 
 ## 2. Why pifigo?
 
-**pifigo** is designed for appliance-style devices where user interaction with the command line is undesirable. It provides a reliable and streamlined way to get your device online, acting as the crucial first step for any IoT or embedded Linux project that needs Wi-Fi connectivity and subsequent configuration.
+**pifigo** is designed to enable appliance-style SBC-based solutions (e.g., Raspberry Pi, Orange Pi, etc.) with a reliable and streamlined way to get the device online, acting as the crucial first step for any IoT or embedded Linux project that needs Wi-Fi connectivity and subsequent configuration.
 
 **This project is not production ready** and in the test phase. Use at your own risk. 
 
@@ -55,16 +62,18 @@
 * **ALL Required Packages (will be installed by `install.sh`):** `hostapd`, `dnsmasq`, `iptables-persistent`, `avahi-daemon`, `iproute2`, `network-manager`.
 
 ## 4. TLDR QUICK START GUIDE
-**TLDR** *download and extract the package and get it on your Pi device and then run the installer as root.*
+**TLDR** *Download and extract the package and get it on your Pi device and then run the installer as root.*
 
 1. Download and extract the [latest release](https://github.com/ToddE/pifigo/releases) on your target device (Raspberry Pi)
+   
 2. Review the config.toml file and make any changes to the default Access Point or passwords. (see [Configuring Pifigo](#5-configuring-pifigo))
+
 3. Run the installer with sudo privileges:
   
   ```bash
   sudo ./install.sh
   ```
-The installer will automatically detect your architecture and install the correct binary.
+The installer will automatically detect your architecture, install the correct binary and configure the device before rebooting.
 
 <!-- 
 ## 5. Detailed Installation Overview
@@ -142,11 +151,11 @@ On your **device's SSH terminal**:
 
 1.  **Connect to pifigo's AP:**
     * On your mobile phone or PC, open your Wi-Fi settings.
-    * Look for a new Wi-Fi network named **`PiFigoSetup`** (this is the default, check your `config.toml` for `network.ap_ssid` if changed).
-    * Connect to it using the password you set in `config.toml` (`87654321` by default for `network.ap_password`).
+    * Look for a new Wi-Fi network named **`PiFigoSetup`** (this is the default, check your `config.toml` for `ap_ssid` if changed).
+    * Connect to it using the password you set in `config.toml` (`87654321` by default for `ap_password`).
 2.  **Access the Captive Portal:**
     * Your device should automatically pop up a browser window for a "Wi-Fi Login" or "Sign in to network" page.
-    * If not, open your web browser and navigate to `http://pifigo.local/` (this is the default hostname, check your `config.toml` for `network.device_hostname` if changed).
+    * If not, open your web browser and navigate to `http://pifigo.local/` (this is the default hostname, check your `config.toml` for `device_hostname` if changed).
 3.  **Perform Wi-Fi Configuration:**
     * The web page will display:
         * Your device's unique **Device ID** and **Claim Code**. **Note these down!** They are crucial for subsequent application setup.
@@ -160,7 +169,7 @@ On your **device's SSH terminal**:
     * Reconnect your mobile/PC back to *your primary home Wi-Fi network*.
 5.  **Device is Now Online:**
     * Your device (Pi) should now be connected to your home Wi-Fi.
-    * You can then access its local services (like `randao-node-manager` if installed) by navigating your browser to `http://<your_device_hostname>.local/` (e.g., `http://pifigo.local/`).
+    * You can then access its local web-based service interface (like `randao-node-manager` if installed) by navigating your browser to `http://<your_device_hostname>.local/` (e.g., `http://pifigo.local/`).
 
 ## 5. Configuring pifigo
 
@@ -213,7 +222,7 @@ network_manager_type = "NetworkManager" # Example: This will be set to "NetworkM
 ```
 ### Localization (`lang/`)
 
-Language strings are stored in TOML files within `/etc/pifigo/lang/`. The `language` setting in `/etc/pifigo/config.toml` (specifically `[language].default_lang`) determines which file is loaded (e.g., `language = "fr"` loads `/etc/pifigo/lang/fr.toml`).
+Language strings are stored in TOML files within `/etc/pifigo/lang/`. The `language` setting in `/etc/pifigo/config.toml` (specifically `default_lang`) determines which file is loaded (e.g., `language = "fr"` loads `/etc/pifigo/lang/fr.toml`).
 
 To add a new language, create a new TOML file (e.g., `es.toml`) in `/etc/pifigo/lang/` and update `config.toml`.
 
