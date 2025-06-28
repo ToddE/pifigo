@@ -679,8 +679,8 @@ esac
 
 
 # #### DO NOT USE THIS INSTALLER YET!!!!
-# prompt_for_enter "${BOLD}THIS INSTALLER IS NOT YET READY. Press ENTER to exit installation of ${PIFIGO}${NC}"
-# exit 1
+prompt_for_enter "${BOLD}THIS INSTALLER IS NOT YET READY. Press ENTER to exit installation of ${PIFIGO}${NC}"
+exit 0
 # #####
 
 stat_msg ok "good job mf"
