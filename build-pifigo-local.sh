@@ -50,6 +50,7 @@ build_target() {
         GOOS=linux GOARCH="$goarch_val" GOARM="$goarm_val" CGO_ENABLED=0 go build -o "$OUTPUT_PATH" "$SOURCE_PATH"
     fi
     echo -e "${GREEN}    Output: ${OUTPUT_PATH}${NC}"
+    ls -lh "${OUTPUT_PATH}"
 }
 
 # --- Build for all targets ---
@@ -63,7 +64,8 @@ build_target "_linux_armv7" "7" "arm"
 # 3. Build for ARM64 (Native 64-bit)
 build_target "_linux_arm64" "" "arm64"
 
+# 4. Build for PC amd64
+build_target "_linux_amd64" "" "amd64" # Suffix, GOARM="", GOARCH="amd64"
+
 echo -e "${BLUE}All ${APP_NAME} builds complete!${NC}"
-ls -lh "${OUTPUT_DIR}/${APP_NAME}_${VERSION_CLEAN}_linux_armv6" \
-        "${OUTPUT_DIR}/${APP_NAME}_${VERSION_CLEAN}_linux_armv7" \
-        "${OUTPUT_DIR}/${APP_NAME}_${VERSION_CLEAN}_linux_arm64"
+ls -lh "${OUTPUT_DIR}"
