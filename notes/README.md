@@ -151,3 +151,130 @@ Configure the wireless interface with a static IP address.
 
 ----
 
+
+
+## Raspian Lite 
+
+By default, a minimal Raspberry Pi OS installation (like the Lite version, often used for IoT projects on devices like the Pi Zero) does not use NetworkManager. Instead, it relies on two primary components for network management: 
+
+- `dhcpcd`: This is the default DHCP client used to obtain an IP address from your network's DHCP server.
+- `wpa_supplicant`: This handles connecting to Wi-Fi networks, especially for securing wireless connections. 
+
+### Configuring Network on a Minimal Pi Zero: 
+For headless setup (without a display), you can pre-configure the Wi-Fi details by placing a wpa_supplicant.conf file in the boot partition of your SD card. The wpa_supplicant.conf file contains the Wi-Fi network information, allowing the Pi to connect automatically upon boot. 
+
+### NetworkManager as an Option:
+While NetworkManager is not the default, it is available as an option in later releases of Raspberry Pi OS. You can enable NetworkManager using raspi-config in the advanced menu.
+
+---
+## Setting up a WiFi Hotspot with Local DHCP and DNS on Raspbian Lite
+To create a WiFi hotspot on your Raspberry Pi running Raspbian Lite, complete with a local DHCP server and DNS name resolution, you'll need to install and configure a few packages, mainly hostapd and dnsmasq. 
+Here's a breakdown of the process:
+### 1. Install Required Packages:
+
+Install hostapd to create the WiFi access point and dnsmasq to manage DHCP and DNS services.
+```bash
+sudo apt update
+sudo apt install hostapd dnsmasq
+```
+
+
+### 2. Configure a Static IP for the Hotspot Interface (e.g., wlan0):
+Edit the network configuration file (likely `/etc/dhcpcd.conf`) to set a static IP for your wireless interface.
+
+```bash
+sudo vi /etc/dhcpcd.conf
+```
+
+or 
+
+```bash
+sudo nano /etc/dhcpd.conf
+```
+
+Add the following lines (adjusting the IP address as needed for your desired network):
+
+```yaml
+interface wlan0
+static ip_address=192.168.4.1/24
+nohook wpa_supplicant
+```
+
+
+### 3. Configure DHCP and DNS using Dnsmasq:
+Create a new configuration file for dnsmasq.
+
+```bash
+sudo nano /etc/dnsmasq.d/hotspot.conf
+```
+(I prefer vi but whatever)
+
+
+Add the following configuration to define the DHCP range and specify the Raspberry Pi as the DNS server:
+```yaml
+# Gateway + DNS server
+dhcp-option=3,192.168.4.1
+dhcp-option=6,192.168.4.1
+# Let the Raspberry Pi resolve all DNS queries
+address=/#/192.168.4.1
+```
+ 
+
+### 4. Configure the Access Point (Hostapd):
+Edit the hostapd default configuration file.
+
+```bash
+sudo vi /etc/default/hostapd
+```
+
+Add the following configuration to define your network name (SSID), channel, and mode:
+
+```yaml
+# Set the interface used by the access point
+INTERFACE="wlan0"
+# Set the SSID
+SSID="YourHotspotName"
+# Set the operating mode (e.g., g for 2.4 GHz)
+HW_MODE="g"
+# Set the channel
+CHANNEL="1"
+# Enable WPA encryption
+WPA="1"
+WPA_PASSPHRASE="YourPassword"
+WPA_DRIVER="nl80211" #validate that this is correct
+```
+
+### 5. Enable IP Forwarding (not necessary for pifigo project)
+To allow devices connected to the hotspot to potentially access the internet (if your Raspberry Pi has internet connectivity), you'll need to enable IP forwarding.
+
+```bash
+sudo vi /etc/sysctl.conf
+```
+
+Uncomment the line net.ipv4.ip_forward=1 by removing the # at the beginning of the line. 
+
+### 6. Add an Iptables Rule (for Internet Sharing):
+If you're sharing an internet connection (e.g., from an Ethernet connection), add an iptables rule to forward traffic.
+```bash
+sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+```
+**Note:** Replace eth0 with the appropriate network interface for your internet connection if needed. 
+
+### 7. Restart Services:
+Restart the necessary services to apply the changes.
+```bash
+sudo systemctl unmask hostapd
+sudo systemctl enable hostapd
+sudo systemctl start hostapd
+sudo systemctl start dnsmasq
+```
+ 
+
+###Important Notes:
+* **Offline Mode:** The configuration for dnsmasq provided above makes the Raspberry Pi resolve all DNS queries locally, meaning devices connected to the hotspot won't have internet access.
+  
+* **Internet Sharing:** To allow internet access for devices on the hotspot, you would typically need a separate network connection (like Ethernet) and configure network address translation (NAT) using iptables.
+
+* **DNS Resolution:** If you need the Raspberry Pi to also act as a DNS server for devices on the hotspot to access the internet, you may need to configure additional DNS settings or use a service like Pi-hole.
+
+* **Conflicts:** Be aware that having multiple DHCP servers on the network can cause conflicts. 
