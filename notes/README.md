@@ -7,7 +7,7 @@ Setting up a WiFi hotspot on a minimal Armbian installation involves configuring
   
 - `dnsmasq`: This package provides both DNS and DHCP services, allowing the hotspot to provide IP addresses and resolve local hostnames.
 
-- `avahi-daemon`: enables mDNS/DNS-SD by implementing Apple's Zeroconf architecture (also known as "Rendezvous" or "Bonjour"). This allows your Armbian device to be discoverable on the network using its hostname followed by ".local" (e.g., <hostname>.local). 
+- `avahi-daemon`: (Maybe) enables mDNS/DNS-SD by implementing Apple's Zeroconf architecture (also known as "Rendezvous" or "Bonjour"). This allows your Armbian device to be discoverable on the network using its hostname followed by ".local" (e.g., <hostname>.local). 
 
 You may need other packages depending on your specific setup, such as tools for bridging networks if you want to share an existing wired connection. 
 
