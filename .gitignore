@@ -22,10 +22,11 @@ pifigo_linux_amd64     # If we ever build for amd64 Linux
 /pkg/
 /bin/ # If you ever output binaries directly to a 'bin' folder
 
-# Test binaries and cache
+# Test binaries, notes, and cache
 *.out
 /test/
 spintest.*
+
 
 # Generated files (like from go generate)
 # If eventually using go:generate to copy/prepare assets, this would be the output directory
