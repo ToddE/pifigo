@@ -1,0 +1,10 @@
+Package: pifigo
+Version: 0.0.1
+Architecture: arm64
+Maintainer: Todd Emerson <todd@toddemerson.com>
+Description: A headless WiFi configuration portal and service.
+ PiFigo is a self-contained Go application that transforms a headless device
+ into a temporary Wi-Fi hotspot. It serves a simple web portal that allows
+ a user to scan for and connect the device to an existing Wi-Fi network.
+Depends: netplan.io, hostapd, dnsmasq, iw, coreutils, curl, avahi-daemon
+

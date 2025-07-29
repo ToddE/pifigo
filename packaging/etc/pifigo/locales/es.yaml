@@ -1,0 +1,18 @@
+# Spanish language strings for pifigo
+page_title: "Configuración PiFigo"
+heading_text: "Conecte su Dispositivo al WiFi"
+connect_button_text: "Conectar"
+available_networks_label: "Redes disponibles:"
+manual_ssid_label: "O ingrese el SSID manualmente:"
+password_label: "Contraseña:"
+manual_ssid_placeholder: "Ingrese el nombre de la red"
+password_placeholder: "Ingrese la contraseña"
+initial_message: "Por favor, seleccione una red para conectar su dispositivo."
+device_id_label: "Hostname del Dispositivo:"
+claim_code_label: "Código de Reclamo (Ejemplo):"
+post_connect_instructions: "Una vez que su dispositivo esté en línea, puede usar su hostname para acceder."
+
+# New fields for the Saved Connections feature
+saved_connections_label: "Conexiones Guardadas:"
+reconnect_button_text: "Reconectar"
+no_saved_connections_message: "No se encontraron conexiones guardadas."

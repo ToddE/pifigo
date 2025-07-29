@@ -1,0 +1,44 @@
+# /etc/pifigo/config.yaml
+
+# Settings for the boot manager, which runs on startup.
+boot_manager:
+  # Time in seconds to wait in hotspot mode before trying the last-known network.
+  # Default is 180 seconds (3 minutes).
+  timeout_seconds: 180
+
+# Settings for the watchdog, which monitors internet connectivity.
+watchdog:
+  enabled: true
+  check_interval_seconds: 120  # Check every 2 minutes
+  failure_threshold: 3         # Revert to hotspot after 3 consecutive failures
+  check_url: "http://www.google.com/generate_204" # URL to test connectivity
+
+# File system paths used by the pifigo application.
+paths:
+  web_root: "/var/www/pifigo"
+  locales_dir: "/etc/pifigo/locales"
+
+# Settings for customizing the web interface's appearance.
+ui:
+  page_title: "PiFigo Setup"
+  heading_text: "Connect Your Device to WiFi"
+  custom_image_url: "randao.svg" # Matches the file in your /web directory
+
+# Network settings for both hotspot mode and the device itself.
+network:
+  ap_ssid: "PiFigoSetup"
+  ap_password: "87654321"
+  ap_channel: 7
+  ap_ip_address: "192.168.4.1/24"
+  wifi_country: "US"
+  device_hostname: "pifigo"
+  wireless_interface: "wlan0"
+  connection_mode: "dhcp" # Can be "dhcp" or "static"
+  static_ip: "192.168.1.150/24"
+  gateway: "192.168.1.1"
+  dns_servers: # for the device once it attaches to a wifi network
+    - "8.8.8.8"
+    - "1.1.1.1"
+
+# The default language for the web interface.
+language: "en"

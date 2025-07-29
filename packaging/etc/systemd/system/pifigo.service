@@ -1,0 +1,16 @@
+[Unit]
+Description=PiFigo WiFi Configuration Portal
+After=network.target
+
+[Service]
+Type=simple
+# The user running the service must have permission to run netplan,
+# systemctl, and iw commands. 'root' is the simplest for this.
+User=root
+Group=root
+ExecStart=/usr/local/bin/pifigo
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

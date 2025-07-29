@@ -1,0 +1,133 @@
+.\" The .TH macro is the title header.
+.\" pifigo = name, 8 = section (system admin commands), "July 2025" = date
+.TH pifigo 8 "July 2025" "pifigo 1.0.0" "PiFigo Manual"
+
+.\" .SH is a Section Header
+.SH NAME
+pifigo \- headless WiFi configuration portal and service
+
+.SH SYNOPSIS
+.B pifigo
+[\fIOPTIONS\fR]
+
+.SH DESCRIPTION
+.B pifigo
+is a self-contained application that transforms a headless device into a temporary Wi-Fi hotspot. It serves a web portal that allows a user to connect the device to an existing Wi-Fi network.
+
+While
+.B pifigo
+can be run directly from the command line for debugging, its primary design is to run as a background service managed by
+.BR systemd (1).
+The service automatically handles starting the hotspot on boot, managing timeouts, and falling back to previously known networks.
+
+The command-line options are provided for administrative tasks, troubleshooting, and managing saved network profiles.
+
+.SH OPERATION
+When the
+.B pifigo.service
+starts on boot, it enters one of two main states:
+
+.TP
+.B Hotspot Mode
+This is the default state. The service starts the hotspot and a web server, allowing a user to connect and configure a Wi-Fi network. A background timer (the boot manager) starts a countdown. If no user action is taken before the timeout, the service will attempt to connect to the last-known-good network.
+
+.TP
+.B Client Mode
+Once a network is configured, the hotspot is disabled, and the device connects to the user's Wi-Fi. The service remains inactive unless a watchdog or manual command forces it back into Hotspot Mode.
+
+.SH OPTIONS
+The following options are available. Using any of these options will cause the program to perform the action and exit, not start the server.
+
+.TP
+.B \--status
+Show the current network status of the device (Hotspot or Client mode) and perform a quick internet connectivity check.
+
+.TP
+.B \--list-saved
+List the SSIDs of all saved network profiles.
+
+.TP
+.B "\--last-good"
+Display the SSID of the network that the boot manager will attempt to fall back to on timeout.
+
+.TP
+.B "\--set-good \fIS SSID\fR"
+Set the last-known-good network to the specified SSID from the list of saved profiles.
+
+.TP
+.B "\--forget \fIS SSID\fR"
+Delete a saved network profile.
+
+.TP
+.B \--force-hotspot
+Force the device into hotspot mode. This is intended to be called by a watchdog or administrator to re-enable the configuration portal if the device loses connectivity.
+
+.TP
+.B \--version
+Show the application version.
+
+.TP
+.B \-v, --verbose
+Enable verbose logging during server startup.
+
+.SH EXAMPLES
+Check the current operational mode of the device:
+.br
+.B pifigo --status
+
+List all Wi-Fi networks the device has saved:
+.br
+.B pifigo --list-saved
+
+Change the default fallback network to a saved profile named "OfficeWiFi":
+.br
+.B pifigo --set-good OfficeWiFi
+
+.SH LOGGING
+When run as a service, all log output from
+.B pifigo
+is managed by the systemd journal. To view the logs, use the
+.BR journalctl (1)
+command:
+.br
+.B journalctl -u pifigo.service
+
+To follow the logs in real-time:
+.br
+.B journalctl -u pifigo.service -f
+
+
+.SH FILES
+.TP
+.I /etc/pifigo/config.yaml
+The main configuration file. Controls all aspects of the service, including hotspot settings, file paths, and timeouts.
+
+.TP
+.I /etc/pifigo/netplan.tpl
+The template used to generate client network configurations.
+
+.TP
+.I /etc/pifigo/saved_networks/
+Directory where all successfully configured network profiles are stored.
+
+.TP
+.I /etc/pifigo/last-good-wifi.yaml
+A symbolic link pointing to the default network profile to be used by the boot manager.
+
+.TP
+.I /etc/netplan/01-pifigo-hotspot.yaml
+The default netplan configuration for starting the device in hotspot mode.
+
+.TP
+.I /etc/systemd/system/pifigo.service
+The systemd service unit file.
+
+.SH SEE ALSO
+.BR netplan (5),
+.BR hostapd (8),
+.BR dnsmasq (8),
+.BR systemd.service (5),
+.BR journalctl (1)
+
+.SH AUTHOR
+Written by Todd Emerson (vibe code assisted with Gemini)

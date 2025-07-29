@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Setup</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"
+        xintegrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8UoOK9"
+        crossorigin="anonymous"></script>
+    <style>
+        .ssid-item {
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+            text-align: left;
+        }
+
+        .ssid-item:hover {
+            background-color: #eef2ff;
+        }
+
+        .copied-feedback {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1f2937;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            pointer-events: none;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+
+<body class="bg-stone-100 font-sans text-stone-800 antialiased">
+    <!-- Chosen Palette: Warm Neutral Harmony -->
+    <!-- Application Structure Plan: The SPA uses a responsive two-column layout on desktops and a single-column layout on mobile. The left/top column is dedicated to the primary user task: network selection. It features a dynamically refreshing list of available networks powered by HTMX for ease of use, alongside a manual entry form. The right/bottom column provides persistent, useful context: static device information (like its ID) and a status area for feedback. This structure was chosen to separate the core interactive task from the informational/feedback context, guiding the user through a clear, logical flow without overwhelming them. The primary goal is to get the user connected quickly and efficiently. -->
+    <!-- Visualization & Content Choices: 1. Available Networks: (Report Info: Scanned SSIDs) -> (Goal: Inform/Select) -> (Method: Dynamic HTML List) -> (Interaction: HTMX GET on timer, JS onclick to populate form) -> (Justification: Prevents user error from manual typing, provides live data) -> (Library: HTMX, Vanilla JS). 2. Connection Form: (Report Info: User credentials) -> (Goal: Collect Input) -> (Method: HTML Form) -> (Interaction: HTMX POST) -> (Justification: Standard, intuitive data submission with modern AJAX feedback) -> (Library: HTMX). 3. Device Info: (Report Info: Hostname, Device ID) -> (Goal: Inform) -> (Method: Static Text) -> (Interaction: JS Copy-to-clipboard) -> (Justification: Provides essential, non-transient info for the user post-setup) -> (Library: Vanilla JS). 4. Status/Feedback: (Report Info: Server responses) -> (Goal: Provide Feedback) -> (Method: HTML fragment) -> (Interaction: HTMX swap) -> (Justification: Gives immediate, in-place confirmation of user actions) -> (Library: HTMX). -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-6xl">
+        <header class="text-center mb-8">
+            <img id="logo" src="" alt="Logo" class="mx-auto h-20 w-20 mb-4 object-contain">
+            <h1 id="heading" class="text-3xl sm:text-4xl font-bold text-blue-600"></h1>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Left Column: Network Selection -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <form hx-post="/connect" hx-target="#response-div" hx-swap="innerHTML" hx-indicator="#spinner">
+                    <div>
+                        <label id="available-networks-label" class="font-semibold text-lg"></label>
+                        <div class="mt-2 h-64 overflow-y-auto border border-stone-200 rounded-lg p-2 bg-stone-50">
+                            <div hx-get="/api/ssids" hx-trigger="load, every 10s" hx-swap="innerHTML"
+                                class="flex flex-col space-y-1">
+                                <div class="text-center text-stone-500 p-4">Scanning for networks...</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <label id="manual-ssid-label" for="ssid-input" class="block font-semibold mb-2"></label>
+                        <input id="ssid-input" type="text" name="ssid"
+                            class="w-full p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition"
+                            required>
+                    </div>
+                    <div class="mt-4">
+                        <label id="password-label" for="password-input" class="block font-semibold mb-2"></label>
+                        <input id="password-input" type="password" name="password"
+                            class="w-full p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition">
+                    </div>
+                    <div class="mt-6">
+                        <button type="submit"
+                            class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors flex items-center justify-center">
+                            <span id="connect-button-text"></span>
+                            <svg id="spinner" class="htmx-indicator animate-spin ml-3 h-5 w-5 text-white"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                </path>
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Right Column: Device Info, Saved Connections & Status -->
+            <div class="space-y-8">
+                <!-- NEW: Saved Connections Card -->
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 id="saved-connections-label" class="text-xl font-bold mb-4"></h2>
+                    <div id="saved-connections-list" class="space-y-2 max-h-48 overflow-y-auto"
+                        hx-get="/api/saved_networks" hx-trigger="load, newConnection from:body" hx-swap="innerHTML">
+                        <div class="text-center text-stone-500 p-4">Loading saved networks...</div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 id="device-info-heading" class="text-xl font-bold mb-4"></h2>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span id="device-id-label" class="font-semibold"></span>
+                            <div class="relative">
+                                <span id="device-hostname"
+                                    class="font-mono text-stone-600 bg-stone-100 px-2 py-1 rounded cursor-pointer"
+                                    onclick="copyToClipboard(this.textContent, 'hostname-feedback')"></span>
+                                <div id="hostname-feedback" class="copied-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <p id="post-connect-instructions" class="text-sm text-stone-500 mt-4"></p>
+                </div>
+
+                <div id="response-div"
+                    class="bg-white p-6 rounded-lg shadow-md min-h-[10rem] flex items-center justify-center text-center">
+                    <p id="initial-message" class="text-stone-600"></p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function selectSSID(ssid) { document.getElementById('ssid-input').value = ssid; }
+        function copyToClipboard(text, feedbackId) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                const feedbackEl = document.getElementById(feedbackId);
+                feedbackEl.textContent = `Copied!`;
+                feedbackEl.style.opacity = '1';
+                setTimeout(() => { feedbackEl.style.opacity = '0'; }, 2000);
+            } catch (err) { console.error('Failed to copy text: ', err); }
+            document.body.removeChild(textArea);
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            fetch('/api/data')
+                .then(response => response.json())
+                .then(data => {
+                    document.title = data.Strings.PageTitle;
+                    document.documentElement.lang = data.Config.Language;
+                    document.getElementById('logo').src = data.Config.UI.CustomImageURL;
+                    document.getElementById('heading').textContent = data.Strings.HeadingText;
+                    document.getElementById('available-networks-label').textContent = data.Strings.AvailableNetworksLabel;
+                    document.getElementById('manual-ssid-label').textContent = data.Strings.ManualSsidLabel;
+                    document.getElementById('ssid-input').placeholder = data.Strings.ManualSsidPlaceholder;
+                    document.getElementById('password-label').textContent = data.Strings.PasswordLabel;
+                    document.getElementById('password-input').placeholder = data.Strings.PasswordPlaceholder;
+                    document.getElementById('connect-button-text').textContent = data.Strings.ConnectButtonText;
+                    document.getElementById('saved-connections-label').textContent = data.Strings.SavedConnectionsLabel;
+                    document.getElementById('device-info-heading').textContent = "Device Information";
+                    document.getElementById('device-id-label').textContent = data.Strings.DeviceIdLabel;
+                    document.getElementById('device-hostname').textContent = data.Config.Network.DeviceHostname;
+                    document.getElementById('post-connect-instructions').textContent = data.Strings.PostConnectInstructions;
+                    document.getElementById('initial-message').textContent = data.Strings.InitialMessage;
+                })
+                .catch(error => {
+                    console.error('Error fetching initial data:', error);
+                    document.getElementById('response-div').innerHTML = '<p class="text-red-600">Could not load device configuration.</p>';
+                });
+        });
+
+        // Listen for successful form submissions to trigger a refresh of the saved networks list.
+        document.body.addEventListener('htmx:afterRequest', function (evt) {
+            if (evt.detail.successful && evt.detail.pathInfo.path === '/connect') {
+                htmx.trigger('#saved-connections-list', 'newConnection');
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,8 @@
+#!/bin/bash
+set -e
+
+echo "Stopping pifigo service before removal..."
+# The '|| true' ensures that the script doesn't fail if the service is already stopped.
+systemctl stop pifigo.service || true
+
+exit 0

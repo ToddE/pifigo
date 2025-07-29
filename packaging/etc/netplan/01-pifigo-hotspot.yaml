@@ -1,0 +1,3 @@
+# This file is managed by the pifigo service.
+# It will be populated with the correct hotspot configuration on startup.
+network: {}
