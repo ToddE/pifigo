@@ -1,15 +1,24 @@
-# /etc/pifigo/netplan.tpl
-
+# This template is used by the pifigo application to generate the client config.
 network:
   version: 2
-  renderer: networkd
+  renderer: NetworkManager
   wifis:
-    # This is a template variable that will be replaced by the
-    # 'wireless_interface' value from your config.yaml
     {{.WirelessInterface}}:
+    {{- if eq .ConnectionMode "dhcp" }}
       dhcp4: true
+    {{- else }}
+      dhcp4: no
+      addresses:
+        - {{.StaticIP}}
+      routes:
+        - to: default
+          via: {{.Gateway}}
+      nameservers:
+        addresses:
+        {{- range .DNSServers }}
+          - {{.}}
+        {{- end }}
+    {{- end }}
       access-points:
-        # These are template variables that will be replaced by the
-        # user-submitted SSID and Password from the web form.
         "{{.SSID}}":
           password: "{{.Password}}"

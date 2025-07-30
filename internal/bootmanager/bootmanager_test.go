@@ -56,15 +56,19 @@ func TestSyncHotspotConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Could not read newly created hotspot config file: %v", err)
 	}
+	contentStr := string(content)
+
+	// --- NEW: Add logging to see the exact output ---
+	t.Logf("Generated content for initial creation:\n---\n%s\n---", contentStr)
 
 	// Check if the content contains the values from our mock config.
-	if !strings.Contains(string(content), "wlan_test:") {
+	if !strings.Contains(contentStr, "wlan_test:") {
 		t.Error("Generated config missing correct wireless interface")
 	}
-	if !strings.Contains(string(content), "ssid: \"TestHotspot\"") {
+	if !strings.Contains(contentStr, "\"TestHotspot\":") {
 		t.Error("Generated config missing correct SSID")
 	}
-	if !strings.Contains(string(content), "channel: 11") {
+	if !strings.Contains(contentStr, "channel: 11") {
 		t.Error("Generated config missing correct channel")
 	}
 
@@ -79,7 +83,12 @@ func TestSyncHotspotConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Could not read updated hotspot config file: %v", err)
 	}
-	if !strings.Contains(string(content), "ssid: \"UpdatedHotspot\"") {
+	contentStr = string(content)
+
+	// --- NEW: Add logging to see the exact output ---
+	t.Logf("Generated content for update:\n---\n%s\n---", contentStr)
+	
+	if !strings.Contains(contentStr, "\"UpdatedHotspot\":") {
 		t.Error("Generated config was not updated with new SSID")
 	}
 }

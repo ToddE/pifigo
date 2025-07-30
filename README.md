@@ -46,7 +46,7 @@ The recommended method for installing PiFigo is via the pre-built Debian (.deb) 
     
    - Next, execute this command to resolve and install any missing dependencies automatically.  
         ```bash
-        sudo apt-get install \-f
+        sudo apt-get install -f
         ```
 4. To complete the installation and initiate the service, reboot the device.  
     ```bash

@@ -13,7 +13,7 @@ import (
 	"pifigo/server"
 )
 
-var version = "1.0.0"
+var version = "0.0.5"
 
 func main() {
 	// --- Define and Parse Command-Line Flags ---

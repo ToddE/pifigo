@@ -56,7 +56,7 @@ From the project's root directory on your `amd64` Ubuntu development machine, cr
 
 - Cross-compile for arm64  
 ```Bash
-GOOS=linux GOARCH=arm64 go build \-o pifigo .
+GOOS=linux GOARCH=arm64 go build -o pifigo .
 ```
 
 ### **Step 2: Stage Files for Packaging**
@@ -95,7 +95,7 @@ example (change the version name ideally)
 
    - Use apt to automatically fix the missing dependencies.  
       ```bash
-      sudo apt-get install -f`
+      sudo apt-get install -f
       ```
 3. Take a look around and check journalctl for anything that seems like an obvious issue before rebooting. 
    ```bash
