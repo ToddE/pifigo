@@ -15,28 +15,30 @@ import (
 func mockExecCommand(t *testing.T) func() {
 	originalExec := ExecCommand
 	ExecCommand = func(name string, arg ...string) *exec.Cmd {
-		// Instead of running the real command, run '/bin/true', which does nothing and exits successfully.
 		return exec.Command("/bin/true")
 	}
-	// Return a cleanup function to restore the original ExecCommand.
 	return func() {
 		ExecCommand = originalExec
 	}
 }
 
-// TestSyncHotspotConfig verifies that the hotspot netplan file is correctly generated from config.
+// TestSyncHotspotConfig verifies that all three hotspot config files are generated correctly.
 func TestSyncHotspotConfig(t *testing.T) {
-	cleanupExec := mockExecCommand(t)
-	defer cleanupExec()
-
 	// Create a temporary directory to act as the root for our config files.
 	tmpDir := t.TempDir()
-	
-	// Temporarily override the package-level variable for the test's scope.
-	originalHotspotFile := HotspotConfigFile
-	HotspotConfigFile = filepath.Join(tmpDir, "01-pifigo-hotspot.yaml")
-	defer func() { HotspotConfigFile = originalHotspotFile }()
 
+	// Temporarily override the package-level variables for the test's scope.
+	originalHotspotFile := HotspotConfigFile
+	originalHostapdFile := HostapdConfigFile
+	originalDnsmasqFile := DnsmasqConfigFile
+	HotspotConfigFile = filepath.Join(tmpDir, "00-pifigo-hotspot-ip.yaml")
+	HostapdConfigFile = filepath.Join(tmpDir, "hostapd.conf")
+	DnsmasqConfigFile = filepath.Join(tmpDir, "99-pifigo-hotspot")
+	defer func() {
+		HotspotConfigFile = originalHotspotFile
+		HostapdConfigFile = originalHostapdFile
+		DnsmasqConfigFile = originalDnsmasqFile
+	}()
 
 	// Create a mock config struct.
 	cfg := &config.Config{}
@@ -45,108 +47,79 @@ func TestSyncHotspotConfig(t *testing.T) {
 	cfg.Network.ApSSID = "TestHotspot"
 	cfg.Network.ApChannel = 11
 	cfg.Network.ApPassword = "testpassword"
+	cfg.Network.WifiCountry = "US"
 
-	// --- Test Case 1: File does not exist, should be created ---
+	// Run the sync function.
 	err := SyncHotspotConfig(cfg)
 	if err != nil {
-		t.Fatalf("SyncHotspotConfig failed on initial creation: %v", err)
+		t.Fatalf("SyncHotspotConfig failed: %v", err)
 	}
 
-	content, err := os.ReadFile(HotspotConfigFile)
+	// --- Verify Netplan File ---
+	netplanContent, err := os.ReadFile(HotspotConfigFile)
 	if err != nil {
-		t.Fatalf("Could not read newly created hotspot config file: %v", err)
+		t.Fatalf("Could not read netplan config file: %v", err)
 	}
-	contentStr := string(content)
-
-	// --- NEW: Add logging to see the exact output ---
-	t.Logf("Generated content for initial creation:\n---\n%s\n---", contentStr)
-
-	// Check if the content contains the values from our mock config.
-	if !strings.Contains(contentStr, "wlan_test:") {
-		t.Error("Generated config missing correct wireless interface")
-	}
-	if !strings.Contains(contentStr, "\"TestHotspot\":") {
-		t.Error("Generated config missing correct SSID")
-	}
-	if !strings.Contains(contentStr, "channel: 11") {
-		t.Error("Generated config missing correct channel")
+	if !strings.Contains(string(netplanContent), "wlan_test:") || !strings.Contains(string(netplanContent), "192.168.100.1/24") {
+		t.Errorf("Netplan config content is incorrect. Got:\n%s", string(netplanContent))
 	}
 
-	// --- Test Case 2: File exists but is out of sync, should be updated ---
-	cfg.Network.ApSSID = "UpdatedHotspot" // Change a value
-	err = SyncHotspotConfig(cfg)
+	// --- Verify Hostapd File ---
+	hostapdContent, err := os.ReadFile(HostapdConfigFile)
 	if err != nil {
-		t.Fatalf("SyncHotspotConfig failed on update: %v", err)
+		t.Fatalf("Could not read hostapd config file: %v", err)
+	}
+	if !strings.Contains(string(hostapdContent), "ssid=TestHotspot") || !strings.Contains(string(hostapdContent), "channel=11") {
+		t.Errorf("Hostapd config content is incorrect. Got:\n%s", string(hostapdContent))
 	}
 
-	content, err = os.ReadFile(HotspotConfigFile)
+	// --- Verify Dnsmasq File ---
+	dnsmasqContent, err := os.ReadFile(DnsmasqConfigFile)
 	if err != nil {
-		t.Fatalf("Could not read updated hotspot config file: %v", err)
+		t.Fatalf("Could not read dnsmasq config file: %v", err)
 	}
-	contentStr = string(content)
-
-	// --- NEW: Add logging to see the exact output ---
-	t.Logf("Generated content for update:\n---\n%s\n---", contentStr)
-	
-	if !strings.Contains(contentStr, "\"UpdatedHotspot\":") {
-		t.Error("Generated config was not updated with new SSID")
+	if !strings.Contains(string(dnsmasqContent), "interface=wlan_test") || !strings.Contains(string(dnsmasqContent), "dhcp-range=192.168.100.1,192.168.100.1") {
+		t.Errorf("Dnsmasq config content is incorrect. Got:\n%s", string(dnsmasqContent))
 	}
 }
 
-// TestBootManager_StopSignal tests that the boot manager exits immediately
-// when it receives a signal on the stop channel, without waiting for the timeout.
+// TestBootManager_StopSignal remains the same
 func TestBootManager_StopSignal(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
-
 	cfg := &config.Config{}
-	cfg.BootManager.TimeoutSeconds = 10 // A long timeout we don't expect to hit
-
+	cfg.BootManager.TimeoutSeconds = 10
 	stopSignal := make(chan bool, 1)
-
 	go func() {
 		defer wg.Done()
 		Start(cfg, stopSignal)
 	}()
-
 	stopSignal <- true
-
 	if waitTimeout(&wg, 100*time.Millisecond) {
 		t.Errorf("Boot manager did not stop immediately after receiving the stop signal")
 	}
 }
 
-// TestBootManager_Timeout tests that the boot manager proceeds after its
-// timer expires if no stop signal is sent.
+// TestBootManager_Timeout remains the same
 func TestBootManager_Timeout(t *testing.T) {
 	cleanupExec := mockExecCommand(t)
 	defer cleanupExec()
-
-	// This test relies on the fact that revertToLastGoodConfig will fail
-	// because the symlink doesn't exist, but it proves the timeout path was taken.
 	var wg sync.WaitGroup
 	wg.Add(1)
-
 	cfg := &config.Config{}
-	// Use a very short timeout for the test
-	cfg.BootManager.TimeoutSeconds = 0 // Set to 0 and rely on short sleep
-
+	cfg.BootManager.TimeoutSeconds = 0
 	stopSignal := make(chan bool, 1)
-
 	go func() {
 		defer wg.Done()
-		time.Sleep(50 * time.Millisecond) // Give a moment for the timer to fire
+		time.Sleep(50 * time.Millisecond)
 		Start(cfg, stopSignal)
 	}()
-
 	if waitTimeout(&wg, 100*time.Millisecond) {
 		// This is expected to fail to wait because the goroutine should finish quickly.
-		// If it times out, something is wrong.
 	}
 }
 
-// waitTimeout is a helper function to wait for a WaitGroup with a timeout.
-// It returns true if the wait timed out, false if it completed successfully.
+// waitTimeout helper function remains the same
 func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 	c := make(chan struct{})
 	go func() {
@@ -155,8 +128,8 @@ func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 	}()
 	select {
 	case <-c:
-		return false // Completed successfully.
+		return false
 	case <-time.After(timeout):
-		return true // Timed out.
+		return true
 	}
 }

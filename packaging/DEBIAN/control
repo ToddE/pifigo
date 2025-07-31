@@ -1,5 +1,5 @@
 Package: pifigo
-Version: 0.0.1
+Version: 0.0.7
 Architecture: arm64
 Maintainer: Todd Emerson <todd@toddemerson.com>
 Description: A headless WiFi configuration portal and service.
@@ -7,4 +7,6 @@ Description: A headless WiFi configuration portal and service.
  into a temporary Wi-Fi hotspot. It serves a simple web portal that allows
  a user to scan for and connect the device to an existing Wi-Fi network.
 Depends: netplan.io, hostapd, dnsmasq, iw, coreutils, curl, avahi-daemon, network-manager
+Conflicts: systemd-resolved
+Replaces: systemd-resolved
 

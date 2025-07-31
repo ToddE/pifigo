@@ -3,7 +3,7 @@
 set -e
 
 CONFIG_FILE="/etc/pifigo/config.yaml"
-HOTSPOT_NETPLAN_FILE="/etc/netplan/01-pifigo-hotspot.yaml"
+HOSTAPD_DEFAULT_FILE="/etc/default/hostapd"
 
 # --- Helper function to read a value from the YAML config file ---
 get_yaml_value() {
@@ -33,43 +33,31 @@ check_wlan_connection() {
 
 echo "Running post-installation script for pifigo..."
 
-# --- NEW: Resolve conflict with systemd-resolved ---
-echo "Checking for network service conflicts..."
-if systemctl is-active --quiet systemd-resolved.service; then
-    echo "Disabling systemd-resolved to allow dnsmasq to run..."
-    systemctl stop systemd-resolved.service
-    systemctl disable systemd-resolved.service
+# 1. Configure hostapd to use the config file we will generate.
+# This follows the classic setup method.
+echo "Configuring hostapd default settings..."
+# Ensure the DAEMON_CONF line exists, then uncomment it and set the path.
+if ! grep -q '^DAEMON_CONF=' "$HOSTAPD_DEFAULT_FILE"; then
+    echo "DAEMON_CONF=\"/etc/hostapd/hostapd.conf\"" >> "$HOSTAPD_DEFAULT_FILE"
+else
+    # These two sed commands handle both commented and uncommented lines.
+    sed -i 's|#DAEMON_CONF=.*|DAEMON_CONF="/etc/hostapd/hostapd.conf"|g' "$HOSTAPD_DEFAULT_FILE"
+    sed -i 's|^DAEMON_CONF=.*|DAEMON_CONF="/etc/hostapd/hostapd.conf"|g' "$HOSTAPD_DEFAULT_FILE"
 fi
 
-# Unmask and enable dnsmasq, which is required for the hotspot.
+# 2. Unmask dnsmasq, which is required for the hotspot.
 if systemctl is-enabled --quiet dnsmasq.service | grep -q "masked"; then
     echo "Unmasking dnsmasq.service..."
     systemctl unmask dnsmasq.service
 fi
 echo "Ensuring dnsmasq service is enabled..."
 systemctl enable dnsmasq.service
-# --- END NEW SECTION ---
 
-
-# 1. Update the hotspot netplan file with values from the main config
-echo "Configuring default hotspot settings..."
-AP_SSID=$(get_yaml_value "ap_ssid")
-AP_PASSWORD=$(get_yaml_value "ap_password")
-AP_IP=$(get_yaml_value "ap_ip_address")
-AP_CHANNEL=$(get_yaml_value "ap_channel")
-WLAN_IFACE=$(get_yaml_value "wireless_interface")
-
-sed -i "s|__PIFIGO_INTERFACE__|${WLAN_IFACE}|g" "$HOTSPOT_NETPLAN_FILE"
-sed -i "s|__PIFIGO_AP_IP__|${AP_IP}|g" "$HOTSPOT_NETPLAN_FILE"
-sed -i "s|__PIFIGO_AP_SSID__|${AP_SSID}|g" "$HOTSPOT_NETPLAN_FILE"
-sed -i "s|__PIFIGO_AP_PASSWORD__|${AP_PASSWORD}|g" "$HOTSPOT_NETPLAN_FILE"
-sed -i "s|__PIFIGO_AP_CHANNEL__|${AP_CHANNEL}|g" "$HOTSPOT_NETPLAN_FILE"
-
-# 2. Reload systemd to make it aware of the new pifigo.service file.
+# 3. Reload systemd to make it aware of the new pifigo.service file.
 echo "Reloading systemd daemon..."
 systemctl daemon-reload
 
-# 3. Check the system's network state.
+# 4. Check the system's network state.
 if check_wlan_connection; then
     # SCENARIO A: INTERNET CONNECTION EXISTS
     echo "Existing Wi-Fi connection detected."
@@ -78,6 +66,7 @@ if check_wlan_connection; then
 else
     # SCENARIO B: NO INTERNET CONNECTION
     echo "No existing Wi-Fi connection detected. Starting pifigo in hotspot mode."
+    # The pifigo service itself will now create the correct hotspot configs on its first run.
     systemctl enable --now pifigo.service
     echo "Installation complete. The pifigo hotspot should be active."
     echo "It is recommended to reboot the device to ensure a clean network state."

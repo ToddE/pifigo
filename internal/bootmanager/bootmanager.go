@@ -16,7 +16,9 @@ import (
 // Exported variables to allow for mocking during tests.
 var (
 	ExecCommand       = exec.Command
-	HotspotConfigFile = "/etc/netplan/01-pifigo-hotspot.yaml"
+	HotspotConfigFile = "/etc/netplan/00-pifigo-hotspot-ip.yaml"
+	HostapdConfigFile = "/etc/hostapd/hostapd.conf"
+	DnsmasqConfigFile = "/etc/dnsmasq.d/99-pifigo-hotspot"
 )
 
 const (
@@ -24,7 +26,7 @@ const (
 	activeClientConfig = "/etc/netplan/99-pifigo-client.yaml"
 )
 
-// SyncHotspotConfig ensures the hotspot netplan file is up-to-date with the main config.
+// SyncHotspotConfig now generates hostapd and dnsmasq configs directly.
 func SyncHotspotConfig(cfg *config.Config) error {
 	log.Println("Syncing hotspot configuration...")
 
@@ -32,55 +34,95 @@ func SyncHotspotConfig(cfg *config.Config) error {
 		return fmt.Errorf("invalid hotspot configuration: %w", err)
 	}
 
-	// CORRECTED: Added the 'channel' field to the template.
-	hotspotTemplate := `network:
+	// 1. Generate the hostapd.conf content
+	hostapdTemplate := `interface={{.Network.WirelessInterface}}
+driver=nl80211
+ssid={{.Network.ApSSID}}
+hw_mode=g
+channel={{.Network.ApChannel}}
+wpa=2
+wpa_passphrase={{.Network.ApPassword}}
+wpa_key_mgmt=WPA-PSK
+rsn_pairwise=CCMP
+country_code={{.Network.WifiCountry}}
+ieee80211n=1
+ieee80211d=1
+`
+	if err := generateAndWriteFile("hostapd", hostapdTemplate, HostapdConfigFile, cfg); err != nil {
+		return err
+	}
+
+	// 2. Generate the dnsmasq config content
+	dnsmasqTemplate := `interface={{.Network.WirelessInterface}}
+listen-address={{ipWithoutCidr .Network.ApIpAddress}}
+bind-interfaces
+server=8.8.8.8
+domain-needed
+bogus-priv
+dhcp-range={{ipWithoutCidr .Network.ApIpAddress}},{{ipWithoutCidr .Network.ApIpAddress}},255.255.255.0,12h
+`
+	// The template functions needed for dnsmasq config
+	funcMap := template.FuncMap{
+		"ipWithoutCidr": func(ipWithCidr string) string {
+			parts := strings.Split(ipWithCidr, "/")
+			if len(parts) > 0 {
+				return parts[0]
+			}
+			return ipWithCidr
+		},
+	}
+	if err := generateAndWriteFile("dnsmasq", dnsmasqTemplate, DnsmasqConfigFile, cfg, funcMap); err != nil {
+		return err
+	}
+
+	// 3. Generate a minimal netplan config JUST for the static IP
+	netplanTemplate := `network:
   version: 2
-  renderer: NetworkManager
+  renderer: networkd
   wifis:
     {{.Network.WirelessInterface}}:
       dhcp4: no
-      addresses:
-        - {{.Network.ApIpAddress}}
-      access-points:
-        "{{.Network.ApSSID}}":
-          password: "{{.Network.ApPassword}}"
-          mode: ap
-          channel: {{.Network.ApChannel}}
+      addresses: [{{.Network.ApIpAddress}}]
 `
-	tmpl, err := template.New("hotspot").Parse(hotspotTemplate)
+	if err := generateAndWriteFile("netplan", netplanTemplate, HotspotConfigFile, cfg); err != nil {
+		return err
+	}
+
+	log.Println("Successfully synced all hotspot configuration files.")
+	return nil
+}
+
+// generateAndWriteFile is a helper to generate, check, and write config files.
+func generateAndWriteFile(name, tmplStr, path string, cfg *config.Config, funcMap ...template.FuncMap) error {
+	tmpl := template.New(name)
+	if len(funcMap) > 0 {
+		tmpl = tmpl.Funcs(funcMap[0])
+	}
+	parsedTmpl, err := tmpl.Parse(tmplStr)
 	if err != nil {
-		return fmt.Errorf("failed to parse internal hotspot template: %w", err)
+		return fmt.Errorf("failed to parse internal %s template: %w", name, err)
 	}
 
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, cfg); err != nil {
-		return fmt.Errorf("failed to execute hotspot template: %w", err)
+	if err := parsedTmpl.Execute(&buf, cfg); err != nil {
+		return fmt.Errorf("failed to execute %s template: %w", name, err)
 	}
 	expectedContent := buf.Bytes()
 
-	currentContent, err := os.ReadFile(HotspotConfigFile)
+	currentContent, err := os.ReadFile(path)
 	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failed to read current hotspot config: %w", err)
+		return fmt.Errorf("failed to read current %s config: %w", name, err)
 	}
 
 	if !bytes.Equal(currentContent, expectedContent) {
-		log.Println("Hotspot configuration is out of sync. Updating...")
-		if err := os.WriteFile(HotspotConfigFile, expectedContent, 0644); err != nil {
-			return fmt.Errorf("failed to write updated hotspot config: %w", err)
+		log.Printf("%s configuration is out of sync. Updating...", name)
+		if err := os.WriteFile(path, expectedContent, 0644); err != nil {
+			return fmt.Errorf("failed to write updated %s config: %w", name, err)
 		}
-
-		cmd := ExecCommand("netplan", "apply")
-		if output, err := cmd.CombinedOutput(); err != nil {
-			log.Printf("ERROR applying synced hotspot config: %s", string(output))
-			return fmt.Errorf("failed to apply synced hotspot config: %w", err)
-		}
-		log.Println("Successfully synced and applied new hotspot configuration.")
-	} else {
-		log.Println("Hotspot configuration is already in sync.")
 	}
-
 	return nil
 }
+
 
 func validateHotspotConfig(cfg *config.Config) error {
 	if cfg.Network.WirelessInterface == "" { return fmt.Errorf("network.wireless_interface cannot be empty") }
@@ -115,10 +157,23 @@ func revertToLastGoodConfig() {
 }
 
 func ForceHotspotMode() error {
-	if err := os.Remove(activeClientConfig); err != nil && !os.IsNotExist(err) { log.Printf("Warning: Could not remove active client config: %v", err) }
+	// When forcing hotspot, we remove the client configs and restart services.
+	// The pifigo service, on next start, will re-sync the correct hotspot configs.
+	if err := os.Remove(activeClientConfig); err != nil && !os.IsNotExist(err) {
+		log.Printf("Warning: Could not remove active client config: %v", err)
+	}
+	
+	// Re-apply netplan. With the client config gone, it will use the static IP config.
 	applyCmd := ExecCommand("netplan", "apply")
-	if output, err := applyCmd.CombinedOutput(); err != nil { log.Printf("ERROR: Failed to apply hotspot config: %v\nOutput: %s", err, string(output)); return err }
+	if output, err := applyCmd.CombinedOutput(); err != nil {
+		log.Printf("ERROR: Failed to apply hotspot config: %v\nOutput: %s", err, string(output))
+		return err
+	}
+	// Restart the services that depend on the static IP.
 	restartCmd := ExecCommand("sh", "-c", "systemctl restart hostapd dnsmasq")
-	if output, err := restartCmd.CombinedOutput(); err != nil { log.Printf("ERROR: Failed to restart hotspot services: %v\nOutput: %s", err, string(output)); return err }
+	if output, err := restartCmd.CombinedOutput(); err != nil {
+		log.Printf("ERROR: Failed to restart hotspot services: %v\nOutput: %s", err, string(output))
+		return err
+	}
 	return nil
 }
